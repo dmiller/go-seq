@@ -1,6 +1,15 @@
 // Package seq contains the public interfaces for the Clojure sequence library
 package seq
 
+type Equatable interface {
+	Equals(o interface{}) bool
+}
+
+type Hashable interface {
+	Equatable
+	Hash() int32
+}
+
 type Seqable interface {
 	Seq() Seq
 }
@@ -53,7 +62,12 @@ type PersistentMap interface {
 }
 
 type Meta interface {
-	meta() PersistentMap
+	Meta() PersistentMap
+}
+
+type Obj interface {
+	Meta
+	WithMeta(meta PersistentMap) Obj
 }
 
 type Indexed interface {
