@@ -22,12 +22,23 @@ type Cons struct {
 
 // interface Meta is covered by the AMeta embedding
 
+// c-tors
+
+func NewCons(first interface{}, more seq.Seq) *Cons {
+	return &Cons{first:first, more:more}
+}
+
+func NewConsM(meta seq.PersistentMap, first interface{}, more seq.Seq) *Cons {
+	nc := &Cons{first:first, more:more}
+	nc.meta = meta
+	return nc
+}
+
+
 // interface seq.Obj
 
 func (c *Cons) WithMeta(meta seq.PersistentMap) seq.Obj {
-	nc := &Cons{first: c.first, more: c.more}
-	nc.meta = meta
-	return nc	
+	return NewConsM(meta,c.first,c.more)
 }
 
 // interface seq.Seqable

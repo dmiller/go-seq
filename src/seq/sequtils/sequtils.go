@@ -1,7 +1,10 @@
 // Package sequtils contains some generally useful functions for implementing the Clojure sequences
 package sequtils
 
-import "seq"
+import (
+	"seq"
+	//"fmt"
+)
 
 func Equals(o1 interface{}, o2 interface{}) bool {
 	if o1 == o2 {
@@ -73,14 +76,16 @@ func SeqEquiv(s1 seq.Seq, s2 seq.Seq) bool {
 }
 
 func Count(o interface{}) int {
-
-	switch o := o.(type) {
-	case nil: 
+	if ( o == nil ) {
 		return 0
-	case seq.Counted:
-		return o.CountFast()
-	case seq.PersistentCollection:
-		s := o.Seq()
+	}
+
+	if cnt, ok := o.(seq.Counted); ok {
+		return cnt.CountFast()
+	}
+
+	if pc, ok := o.(seq.PersistentCollection); ok {
+		s := pc.Seq()
 		i := 0
 		for ; s!=nil; s = s.Next() {
 			if c,ok := s.(seq.Counted); ok {
@@ -89,9 +94,11 @@ func Count(o interface{}) int {
 			i++
 		}
 		return i
-	case string:
-		return len(o)
-		// TODO: Figure out how to  handle arrays, slices, maps in a typeswitch/generic way
 	}
+
+	if s, ok := o.(string); ok {
+		return len(s)
+	}
+	// TODO: Figure out how to  handle arrays, slices, maps in a typeswitch/generic way
 	panic("Count not supported on this type")
 }
