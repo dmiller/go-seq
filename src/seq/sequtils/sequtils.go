@@ -89,7 +89,7 @@ func Count(o interface{}) int {
 		i := 0
 		for ; s!=nil; s = s.Next() {
 			if c,ok := s.(seq.Counted); ok {
-				return i + c.CountFast()
+				return i + c.Count()
 			}
 			i++
 		}

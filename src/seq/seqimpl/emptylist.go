@@ -83,8 +83,7 @@ func (e *EmptyList) 	SCons(o interface{}) seq.Seq {
 
 // interface Counted
 
-func (e *EmptyList) CountFast() int {
-	return 0
+func (e *EmptyList) implementsCounted() {
 }
 
 
