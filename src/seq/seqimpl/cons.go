@@ -6,10 +6,14 @@ import (
 	)
 
 // Cons implements an immutable cons cell (sort of CAR/CDR, from the beginning of Lisp)
+//
+// Zero value is (nil) (list of one element, nil), nil metadata, hash not cached.
+// We use 0 as an indicator that hash is not cached.
 type Cons struct {
-	AMeta
 	first interface{}
 	more seq.Seq
+	AMeta
+	hash int32
 }
 
 // Cons needs to implement the seq interfaces: 
@@ -66,14 +70,12 @@ func (c *Cons) Equiv(o interface{}) bool {
  		return true
  	}
 	
+ 	if os, ok := o.(seq.Seqable); ok {
+		return sequtils.SeqEquiv(c,os.Seq());
+	}
+
  	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
- 	os, ok := o.(seq.Seqable)
-
- 	if !ok {
- 		return false
- 	}
-
-	return sequtils.SeqEquiv(c,os.Seq());
+	return false
 }
 
 // interface seq.Seq
@@ -96,4 +98,28 @@ func (c *Cons) 	More() seq.Seq {
 
 func (c *Cons) 	SCons(o interface{}) seq.Seq {
 	return &Cons{first: o, more: c} 
+}
+
+
+// interfaces Equatable, Hashable
+
+func (c *Cons)	Equals(o interface{}) bool {
+ 	if c == o {
+ 		return true
+ 	}
+	
+ 	if os, ok := o.(seq.Seqable); ok {
+		return sequtils.SeqEquals(c,os.Seq());
+	}
+	
+ 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
+	return false
+}
+
+func (c *Cons) Hash() int32 {
+	if ( c.hash == 0 ) {
+		
+	}
+
+	return c.hash
 }

@@ -81,7 +81,7 @@ func Count(o interface{}) int {
 	}
 
 	if cnt, ok := o.(seq.Counted); ok {
-		return cnt.CountFast()
+		return cnt.Count1()
 	}
 
 	if pc, ok := o.(seq.PersistentCollection); ok {
@@ -89,7 +89,7 @@ func Count(o interface{}) int {
 		i := 0
 		for ; s!=nil; s = s.Next() {
 			if c,ok := s.(seq.Counted); ok {
-				return i + c.Count()
+				return i + c.Count1()
 			}
 			i++
 		}

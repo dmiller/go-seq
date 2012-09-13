@@ -2,7 +2,6 @@ package seqimpl
 
 import (
 	"seq"
-	"seq/sequtils"
 	)
 
 // EmptyList implements an empty PersistentList
@@ -57,7 +56,12 @@ func (e *EmptyList) Equiv(o interface{}) bool {
  		return true
  	}
 	
-	return sequtils.Equiv(e,o)
+	// TODO: deal with other sequence types
+	if s, ok := o.(seq.Seqable); ok {
+		return s.Seq() == nil
+	}
+
+	return false
 }
 
 // interface seq.Seq
@@ -83,7 +87,8 @@ func (e *EmptyList) 	SCons(o interface{}) seq.Seq {
 
 // interface Counted
 
-func (e *EmptyList) implementsCounted() {
+func (e *EmptyList) Count1() int {
+	return 0
 }
 
 
@@ -98,4 +103,15 @@ func (e *EmptyList)	Pop() seq.PersistentStack {
 	// should we add another return value?
 	// For the moment, just return nil
 	return nil
+}
+
+
+// interfaces Equatable, Hashable
+
+func (c *EmptyList) Equals(o interface{}) bool {
+	return c.Equiv(o)
+}
+
+func (c *EmptyList) Hash() int32 {
+	return 37
 }

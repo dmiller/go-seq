@@ -1,10 +1,11 @@
 package seqimpl
 import (
 	"testing"
+	"seq"
 )
 
 
-func TestCtors(t *testing.T) {
+func TestConsCtors(t *testing.T) {
 	c := NewCons("abc",nil)
 
 	if c.Meta() != nil {
@@ -23,6 +24,37 @@ func TestCtors(t *testing.T) {
 	if c1.Next()!=c {
 		t.Error("NewCons ctor did nto initialize more/next")
 	}
+
+	// TODO: add tests for c-tor with meta -- we need a PersistentMap implementation first
+}
+
+
+func TestConsImplementInterfaces(t *testing.T) {
+	var c interface{} = NewCons("abc",nil)
+
+	if _,ok := c.(seq.Obj); !ok {
+		t.Error("Cons must implement Obj")
+	}
+
+	if _,ok := c.(seq.Meta); !ok {
+		t.Error("Cons must implement Meta")
+	}
+
+	if _,ok := c.(seq.PersistentCollection); !ok {
+		t.Error("Cons must implement PersistentCollection")
+	}
+
+	if _,ok := c.(seq.Seqable); !ok {
+		t.Error("Cons must implement Seqable")
+	}
+
+	if _,ok := c.(seq.Equatable); !ok {
+		t.Error("Cons must implement Equatable")
+	}
+
+	if _,ok := c.(seq.Hashable); !ok {
+		t.Error("Cons must implement Hashable")
+	}
 }
 
 func createComplicatedCons() *Cons {
@@ -34,14 +66,14 @@ func createComplicatedCons() *Cons {
 	return c5
 }
 
-func TestCount(t *testing.T) {
+func TestConsCount(t *testing.T) {
 	c := createComplicatedCons()
 	if c.Count() != 4 {
 		t.Errorf("Count: expected 4, got %v",c.Count())
 	}
 }
 
-func TestSeq(t *testing.T) {
+func TestConsSeq(t *testing.T) {
 	c1 := NewCons("abc",nil)
 	c2 := createComplicatedCons()
 	if c1.Seq() != c1 {
@@ -52,7 +84,7 @@ func TestSeq(t *testing.T) {
 	}
 }
 
-func TestEmpty(t *testing.T) {
+func TestConsEmpty(t *testing.T) {
 	c := NewCons("abc",nil)
 	e := c.Empty()
 	if e !=CachedEmptyList {
@@ -60,7 +92,7 @@ func TestEmpty(t *testing.T) {
 	}
 }
 
-func TestEquiv(t *testing.T) {
+func TestConsEquiv(t *testing.T) {
 	c1 := createComplicatedCons()
 	c2 := createComplicatedCons()
 	if  c1 == c2 {

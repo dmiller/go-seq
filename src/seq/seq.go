@@ -41,7 +41,7 @@ type MapEntry interface {
 }
 
 type Counted interface {
-	implementsCounted()
+	Count1() int
 }
 
 type Associative interface {
