@@ -19,14 +19,13 @@ package seqimpl
 // 	if a == o {
 // 		return true
 // 	}
-	
+
 // 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
 // 	os, ok := o.(seq.Seqable)
 
 // 	if !ok {
 // 		return false
 // 	}
-
 
 // 	ms := os.Seq()
 // 	for s := a.Seq(); s != nil; s = s.Next() {
@@ -38,5 +37,3 @@ package seqimpl
 
 // 	return ms == nil;
 // }
-
-

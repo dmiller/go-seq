@@ -1,13 +1,18 @@
 // Package seq contains the public interfaces for the Clojure sequence library
 package seq
 
+import (
+	"hash"
+)
+
 type Equatable interface {
 	Equals(o interface{}) bool
 }
 
 type Hashable interface {
 	Equatable
-	Hash() int32
+	Hash() uint32
+	AddHash(hash.Hash)
 }
 
 type Seqable interface {

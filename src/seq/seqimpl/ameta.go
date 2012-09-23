@@ -2,7 +2,6 @@ package seqimpl
 
 import "seq"
 
-
 type AMeta struct {
 	meta seq.PersistentMap
 }
@@ -10,4 +9,3 @@ type AMeta struct {
 func (o *AMeta) Meta() seq.PersistentMap {
 	return o.meta
 }
-

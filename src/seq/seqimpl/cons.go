@@ -1,9 +1,10 @@
 package seqimpl
 
 import (
+	"hash"
 	"seq"
 	"seq/sequtils"
-	)
+)
 
 // Cons implements an immutable cons cell (sort of CAR/CDR, from the beginning of Lisp)
 //
@@ -11,9 +12,9 @@ import (
 // We use 0 as an indicator that hash is not cached.
 type Cons struct {
 	first interface{}
-	more seq.Seq
+	more  seq.Seq
 	AMeta
-	hash int32
+	hash uint32
 }
 
 // Cons needs to implement the seq interfaces: 
@@ -29,20 +30,19 @@ type Cons struct {
 // c-tors
 
 func NewCons(first interface{}, more seq.Seq) *Cons {
-	return &Cons{first:first, more:more}
+	return &Cons{first: first, more: more}
 }
 
 func NewConsM(meta seq.PersistentMap, first interface{}, more seq.Seq) *Cons {
-	nc := &Cons{first:first, more:more}
+	nc := &Cons{first: first, more: more}
 	nc.meta = meta
 	return nc
 }
 
-
 // interface seq.Obj
 
 func (c *Cons) WithMeta(meta seq.PersistentMap) seq.Obj {
-	return NewConsM(meta,c.first,c.more)
+	return NewConsM(meta, c.first, c.more)
 }
 
 // interface seq.Seqable
@@ -62,64 +62,71 @@ func (c *Cons) Cons(o interface{}) seq.PersistentCollection {
 }
 
 func (c *Cons) Empty() seq.PersistentCollection {
-	return CachedEmptyList;
+	return CachedEmptyList
 }
 
 func (c *Cons) Equiv(o interface{}) bool {
- 	if c == o {
- 		return true
- 	}
-	
- 	if os, ok := o.(seq.Seqable); ok {
-		return sequtils.SeqEquiv(c,os.Seq());
+	if c == o {
+		return true
 	}
 
- 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
+	if os, ok := o.(seq.Seqable); ok {
+		return sequtils.SeqEquiv(c, os.Seq())
+	}
+
+	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
 	return false
 }
 
 // interface seq.Seq
 
-func (c *Cons) 	First() interface{} {
+func (c *Cons) First() interface{} {
 	return c.first
 }
 
-func (c *Cons) 	Next() seq.Seq {
+func (c *Cons) Next() seq.Seq {
 	return c.More().Seq()
 }
 
-func (c *Cons) 	More() seq.Seq {
+func (c *Cons) More() seq.Seq {
 	if c.more == nil {
-		return CachedEmptyList;
+		return CachedEmptyList
 	}
 
-	return c.more;
+	return c.more
 }
 
-func (c *Cons) 	SCons(o interface{}) seq.Seq {
-	return &Cons{first: o, more: c} 
+func (c *Cons) SCons(o interface{}) seq.Seq {
+	return &Cons{first: o, more: c}
 }
-
 
 // interfaces Equatable, Hashable
 
-func (c *Cons)	Equals(o interface{}) bool {
- 	if c == o {
- 		return true
- 	}
-	
- 	if os, ok := o.(seq.Seqable); ok {
-		return sequtils.SeqEquals(c,os.Seq());
+func (c *Cons) Equals(o interface{}) bool {
+	if c == o {
+		return true
 	}
-	
- 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
+
+	if os, ok := o.(seq.Seqable); ok {
+		return sequtils.SeqEquals(c, os.Seq())
+	}
+
+	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
 	return false
 }
 
-func (c *Cons) Hash() int32 {
-	if ( c.hash == 0 ) {
-		
+func (c *Cons) Hash() uint32 {
+	if c.hash == 0 {
+		c.hash = sequtils.HashSeq(c)
 	}
 
 	return c.hash
+}
+
+func (c *Cons) AddHash(h hash.Hash) {
+	if c.hash == 0 {
+		c.hash = sequtils.HashSeq(c)
+	}
+
+	sequtils.AddHashUint64(h, uint64(c.hash))
 }

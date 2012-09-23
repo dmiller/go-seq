@@ -1,8 +1,10 @@
 package seqimpl
 
 import (
+	"hash"
 	"seq"
-	)
+	"seq/sequtils"
+)
 
 // EmptyList implements an empty PersistentList
 type EmptyList struct {
@@ -28,7 +30,7 @@ var (
 func (e *EmptyList) WithMeta(meta seq.PersistentMap) seq.Obj {
 	e2 := &EmptyList{}
 	e2.meta = meta
-	return e2	
+	return e2
 }
 
 // interface seq.Seqable
@@ -52,10 +54,10 @@ func (e *EmptyList) Empty() seq.PersistentCollection {
 }
 
 func (e *EmptyList) Equiv(o interface{}) bool {
- 	if e == o {
- 		return true
- 	}
-	
+	if e == o {
+		return true
+	}
+
 	// TODO: deal with other sequence types
 	if s, ok := o.(seq.Seqable); ok {
 		return s.Seq() == nil
@@ -66,24 +68,23 @@ func (e *EmptyList) Equiv(o interface{}) bool {
 
 // interface seq.Seq
 
-func (e *EmptyList) 	First() interface{} {
+func (e *EmptyList) First() interface{} {
 	return nil
 }
 
-func (e *EmptyList) 	Next() seq.Seq {
+func (e *EmptyList) Next() seq.Seq {
 	return nil
 }
 
-func (e *EmptyList) 	More() seq.Seq {
+func (e *EmptyList) More() seq.Seq {
 	return e
 }
 
-func (e *EmptyList) 	SCons(o interface{}) seq.Seq {
+func (e *EmptyList) SCons(o interface{}) seq.Seq {
 	// TODO: really, this needs to return a PersistentList of one element.
 	// Fix when we have a true PersistentList
-	return &Cons{first: o, more: e} 
+	return &Cons{first: o, more: e}
 }
-
 
 // interface Counted
 
@@ -91,20 +92,18 @@ func (e *EmptyList) Count1() int {
 	return 0
 }
 
-
 // PersistentStack
 
-func (e *EmptyList)	Peek() interface{} {
+func (e *EmptyList) Peek() interface{} {
 	return nil
 }
 
-func (e *EmptyList)	Pop() seq.PersistentStack {
+func (e *EmptyList) Pop() seq.PersistentStack {
 	// in Clojure, popping throws an exception
 	// should we add another return value?
 	// For the moment, just return nil
 	return nil
 }
-
 
 // interfaces Equatable, Hashable
 
@@ -112,6 +111,12 @@ func (c *EmptyList) Equals(o interface{}) bool {
 	return c.Equiv(o)
 }
 
-func (c *EmptyList) Hash() int32 {
-	return 37
+var hashCode uint32 = 37
+
+func (c *EmptyList) Hash() uint32 {
+	return hashCode
+}
+
+func (c *EmptyList) AddHash(h hash.Hash) {
+	sequtils.AddHashUint64(h, uint64(hashCode))
 }
