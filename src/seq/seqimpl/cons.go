@@ -34,8 +34,7 @@ func NewCons(first interface{}, more seq.Seq) *Cons {
 }
 
 func NewConsM(meta seq.PersistentMap, first interface{}, more seq.Seq) *Cons {
-	nc := &Cons{first: first, more: more}
-	nc.meta = meta
+	nc := &Cons{AMeta: AMeta{meta}, first: first, more: more}
 	return nc
 }
 
