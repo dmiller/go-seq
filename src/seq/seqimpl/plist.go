@@ -12,7 +12,7 @@ import (
 // We use 0 as an indicator that hash is not cached.
 type PList struct {
 	first interface{}
-	rest seq.PersistentList
+	rest  seq.PersistentList
 	count int
 	AMeta
 	hash uint32
@@ -28,13 +28,12 @@ type PList struct {
 
 // interface Meta is covered by the AMeta embedding
 
-
 // c-tors
 
 func NewPList1(first interface{}) *PList {
 	return &PList{first: first, count: 1}
 }
-  
+
 func NewPList1N(first interface{}, rest seq.PersistentList, count int) *PList {
 	return &PList{first: first, rest: rest, count: count}
 }
@@ -43,13 +42,12 @@ func NewPListMeta1N(meta seq.PersistentMap, first interface{}, rest seq.Persiste
 	return &PList{AMeta: AMeta{meta}, first: first, rest: rest, count: count}
 }
 
-
 func NewPListFromSlice(init []interface{}) *PList {
 	var ret *PList
 	count := 0
-	for i := len(init)-1; i >= 0; i-- {
+	for i := len(init) - 1; i >= 0; i-- {
 		count++
-		ret = NewPList1N(init[i],ret,count)
+		ret = NewPList1N(init[i], ret, count)
 	}
 	return ret
 }
@@ -92,7 +90,7 @@ func (p *PList) Equiv(o interface{}) bool {
 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
 	return false
 }
- 
+
 // interface seq.Seq
 
 func (p *PList) First() interface{} {
@@ -106,19 +104,17 @@ func (p *PList) Next() seq.Seq {
 	return p.rest.Seq()
 }
 
-
 func (p *PList) More() seq.Seq {
-	s := p.Next(); 
+	s := p.Next()
 	if s == nil {
 		return CachedEmptyList
-	} 
+	}
 	return s
 }
 
 func (p *PList) SCons(o interface{}) seq.Seq {
 	return NewPListMeta1N(p.meta, o, p, p.count+1)
 }
-
 
 // interface Counted
 
@@ -170,36 +166,35 @@ func (p *PList) AddHash(h hash.Hash) {
 	sequtils.AddHashUint64(h, uint64(p.hash))
 }
 
-
 /*
-      #region IReduce Members
+   #region IReduce Members
 
-        /// <summary>
-        /// Reduce the collection using a function.
-        /// </summary>
-        /// <param name="f">The function to apply.</param>
-        /// <returns>The reduced value</returns>
-        public object reduce(IFn f)
-        {
-            object ret = first();
-            for (ISeq s = next(); s != null; s = s.next())
-                ret = f.invoke(ret, s.first());
-            return ret;
-        }
+     /// <summary>
+     /// Reduce the collection using a function.
+     /// </summary>
+     /// <param name="f">The function to apply.</param>
+     /// <returns>The reduced value</returns>
+     public object reduce(IFn f)
+     {
+         object ret = first();
+         for (ISeq s = next(); s != null; s = s.next())
+             ret = f.invoke(ret, s.first());
+         return ret;
+     }
 
-        /// <summary>
-        /// Reduce the collection using a function.
-        /// </summary>
-        /// <param name="f">The function to apply.</param>
-        /// <param name="start">An initial value to get started.</param>
-        /// <returns>The reduced value</returns>
-        public object reduce(IFn f, object start)
-        {
-            object ret = f.invoke(start, first());
-            for (ISeq s = next(); s != null; s = s.next())
-                ret = f.invoke(ret, s.first());
-            return ret;
-        }
+     /// <summary>
+     /// Reduce the collection using a function.
+     /// </summary>
+     /// <param name="f">The function to apply.</param>
+     /// <param name="start">An initial value to get started.</param>
+     /// <returns>The reduced value</returns>
+     public object reduce(IFn f, object start)
+     {
+         object ret = f.invoke(start, first());
+         for (ISeq s = next(); s != null; s = s.next())
+             ret = f.invoke(ret, s.first());
+         return ret;
+     }
 
-        #endregion
+     #endregion
 */

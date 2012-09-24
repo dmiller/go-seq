@@ -49,7 +49,7 @@ func TestNewPListFromSlice(t *testing.T) {
 func TestNewPlist1N(t *testing.T) {
 	tail := NewPListFromSlice([]interface{}{"def", 2, 3})
 
-	p := NewPList1N("abc",tail,3)
+	p := NewPList1N("abc", tail, 3)
 
 	if p.Meta() != nil {
 		t.Error("NewPlist1N ctor should have nil meta")
@@ -127,18 +127,18 @@ func TestPListCount(t *testing.T) {
 
 func TestPListSeq(t *testing.T) {
 
-	sl := []interface{}{"abc","def", 2, 3}
+	sl := []interface{}{"abc", "def", 2, 3}
 	pl := NewPListFromSlice(sl)
 
-	if (pl.Seq() != pl ) {
+	if pl.Seq() != pl {
 		t.Error("Seq should return self")
 	}
 
 	i := 0
-	for s:= pl.Seq(); s != nil; s,i = s.Next(),i+1 {
+	for s := pl.Seq(); s != nil; s, i = s.Next(), i+1 {
 		if f, e := s.First(), sl[i]; f != e {
-			t.Errorf("for Seq, on element %v, expected %v, got %v",i,f,e)
-		} 
+			t.Errorf("for Seq, on element %v, expected %v, got %v", i, f, e)
+		}
 	}
 }
 
@@ -157,10 +157,7 @@ func TestPListCons(t *testing.T) {
 	// TODO: test preservation of meta when we have a PersistentMap implementation
 }
 
-
-
 // TODO: test Seq has meta
-
 
 func TestPListEmpty(t *testing.T) {
 	c := NewPList1("abc")
@@ -171,7 +168,6 @@ func TestPListEmpty(t *testing.T) {
 
 	// TODO: test preservation of meta when we have a PersistentMap implementation
 }
-
 
 func TestPListEquiv(t *testing.T) {
 	c1 := createLongerPList()
@@ -191,4 +187,3 @@ func TestPListEquiv(t *testing.T) {
 		t.Error("cons equiv dissimilar list")
 	}
 }
-
