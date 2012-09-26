@@ -1,7 +1,7 @@
-package seqimpl
+package seq
 
 import (
-	"seq"
+	"iseq"
 	"testing"
 )
 
@@ -31,27 +31,27 @@ func TestConsCtors(t *testing.T) {
 func TestConsImplementInterfaces(t *testing.T) {
 	var c interface{} = NewCons("abc", nil)
 
-	if _, ok := c.(seq.Obj); !ok {
+	if _, ok := c.(iseq.Obj); !ok {
 		t.Error("Cons must implement Obj")
 	}
 
-	if _, ok := c.(seq.Meta); !ok {
+	if _, ok := c.(iseq.Meta); !ok {
 		t.Error("Cons must implement Meta")
 	}
 
-	if _, ok := c.(seq.PersistentCollection); !ok {
+	if _, ok := c.(iseq.PersistentCollection); !ok {
 		t.Error("Cons must implement PersistentCollection")
 	}
 
-	if _, ok := c.(seq.Seqable); !ok {
+	if _, ok := c.(iseq.Seqable); !ok {
 		t.Error("Cons must implement Seqable")
 	}
 
-	if _, ok := c.(seq.Equatable); !ok {
+	if _, ok := c.(iseq.Equatable); !ok {
 		t.Error("Cons must implement Equatable")
 	}
 
-	if _, ok := c.(seq.Hashable); !ok {
+	if _, ok := c.(iseq.Hashable); !ok {
 		t.Error("Cons must implement Hashable")
 	}
 }

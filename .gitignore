@@ -24,3 +24,6 @@ _testmain.go
 
 # emacs
 .#*
+
+src/github.com/
+bin/

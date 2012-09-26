@@ -1,5 +1,5 @@
-// Package seq contains the public interfaces for the Clojure sequence library
-package seq
+// Package iseq contains the public interfaces for the Clojure sequence library
+package iseq
 
 import (
 	"hash"

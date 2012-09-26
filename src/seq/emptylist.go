@@ -1,9 +1,9 @@
-package seqimpl
+package seq
 
 import (
 	"hash"
-	"seq"
-	"seq/sequtils"
+	"iseq"
+	"sequtil"
 )
 
 // EmptyList implements an empty PersistentList
@@ -25,31 +25,31 @@ var (
 
 // interface Meta is covered by the AMeta embedding
 
-// interface seq.Obj
+// interface iseq.Obj
 
-func (e *EmptyList) WithMeta(meta seq.PersistentMap) seq.Obj {
+func (e *EmptyList) WithMeta(meta iseq.PersistentMap) iseq.Obj {
 	e2 := &EmptyList{}
 	e2.meta = meta
 	return e2
 }
 
-// interface seq.Seqable
+// interface iseq.Seqable
 
-func (e *EmptyList) Seq() seq.Seq {
+func (e *EmptyList) Seq() iseq.Seq {
 	return nil
 }
 
-// interface seq.PersistentCollection
+// interface iseq.PersistentCollection
 
 func (e *EmptyList) Count() int {
 	return 0
 }
 
-func (e *EmptyList) Cons(o interface{}) seq.PersistentCollection {
+func (e *EmptyList) Cons(o interface{}) iseq.PersistentCollection {
 	return e.SCons(o)
 }
 
-func (e *EmptyList) Empty() seq.PersistentCollection {
+func (e *EmptyList) Empty() iseq.PersistentCollection {
 	return e
 }
 
@@ -59,28 +59,28 @@ func (e *EmptyList) Equiv(o interface{}) bool {
 	}
 
 	// TODO: deal with other sequence types
-	if s, ok := o.(seq.Seqable); ok {
+	if s, ok := o.(iseq.Seqable); ok {
 		return s.Seq() == nil
 	}
 
 	return false
 }
 
-// interface seq.Seq
+// interface iseq.Seq
 
 func (e *EmptyList) First() interface{} {
 	return nil
 }
 
-func (e *EmptyList) Next() seq.Seq {
+func (e *EmptyList) Next() iseq.Seq {
 	return nil
 }
 
-func (e *EmptyList) More() seq.Seq {
+func (e *EmptyList) More() iseq.Seq {
 	return e
 }
 
-func (e *EmptyList) SCons(o interface{}) seq.Seq {
+func (e *EmptyList) SCons(o interface{}) iseq.Seq {
 	// TODO: really, this needs to return a PersistentList of one element.
 	// Fix when we have a true PersistentList
 	return &Cons{first: o, more: e}
@@ -98,7 +98,7 @@ func (e *EmptyList) Peek() interface{} {
 	return nil
 }
 
-func (e *EmptyList) Pop() seq.PersistentStack {
+func (e *EmptyList) Pop() iseq.PersistentStack {
 	// in Clojure, popping throws an exception
 	// should we add another return value?
 	// For the moment, just return nil
@@ -118,5 +118,5 @@ func (c *EmptyList) Hash() uint32 {
 }
 
 func (c *EmptyList) AddHash(h hash.Hash) {
-	sequtils.AddHashUint64(h, uint64(hashCode))
+	sequtil.AddHashUint64(h, uint64(hashCode))
 }

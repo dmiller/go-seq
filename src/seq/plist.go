@@ -1,9 +1,9 @@
-package seqimpl
+package seq
 
 import (
 	"hash"
-	"seq"
-	"seq/sequtils"
+	"iseq"
+	"sequtil"
 )
 
 // PList implements a persistent list
@@ -12,7 +12,7 @@ import (
 // We use 0 as an indicator that hash is not cached.
 type PList struct {
 	first interface{}
-	rest  seq.PersistentList
+	rest  iseq.PersistentList
 	count int
 	AMeta
 	hash uint32
@@ -34,11 +34,11 @@ func NewPList1(first interface{}) *PList {
 	return &PList{first: first, count: 1}
 }
 
-func NewPList1N(first interface{}, rest seq.PersistentList, count int) *PList {
+func NewPList1N(first interface{}, rest iseq.PersistentList, count int) *PList {
 	return &PList{first: first, rest: rest, count: count}
 }
 
-func NewPListMeta1N(meta seq.PersistentMap, first interface{}, rest seq.PersistentList, count int) *PList {
+func NewPListMeta1N(meta iseq.PersistentMap, first interface{}, rest iseq.PersistentList, count int) *PList {
 	return &PList{AMeta: AMeta{meta}, first: first, rest: rest, count: count}
 }
 
@@ -52,30 +52,30 @@ func NewPListFromSlice(init []interface{}) *PList {
 	return ret
 }
 
-// interface seq.Obj
+// interface iseq.Obj
 
-func (p *PList) WithMeta(meta seq.PersistentMap) seq.Obj {
+func (p *PList) WithMeta(meta iseq.PersistentMap) iseq.Obj {
 	return NewPListMeta1N(meta, p.first, p.rest, p.count)
 }
 
-// interface seq.Seqable
+// interface iseq.Seqable
 
-func (p *PList) Seq() seq.Seq {
+func (p *PList) Seq() iseq.Seq {
 	return p
 }
 
-// interface seq.PersistentCollection
+// interface iseq.PersistentCollection
 
 func (p *PList) Count() int {
 	return p.count
 }
 
-func (p *PList) Cons(o interface{}) seq.PersistentCollection {
+func (p *PList) Cons(o interface{}) iseq.PersistentCollection {
 	return p.SCons(o)
 }
 
-func (p *PList) Empty() seq.PersistentCollection {
-	return CachedEmptyList.WithMeta(p.meta).(seq.PersistentCollection)
+func (p *PList) Empty() iseq.PersistentCollection {
+	return CachedEmptyList.WithMeta(p.meta).(iseq.PersistentCollection)
 }
 
 func (p *PList) Equiv(o interface{}) bool {
@@ -83,28 +83,28 @@ func (p *PList) Equiv(o interface{}) bool {
 		return true
 	}
 
-	if os, ok := o.(seq.Seqable); ok {
-		return sequtils.SeqEquiv(p, os.Seq())
+	if os, ok := o.(iseq.Seqable); ok {
+		return sequtil.SeqEquiv(p, os.Seq())
 	}
 
 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
 	return false
 }
 
-// interface seq.Seq
+// interface iseq.Seq
 
 func (p *PList) First() interface{} {
 	return p.first
 }
 
-func (p *PList) Next() seq.Seq {
+func (p *PList) Next() iseq.Seq {
 	if p.count == 1 {
 		return nil
 	}
 	return p.rest.Seq()
 }
 
-func (p *PList) More() seq.Seq {
+func (p *PList) More() iseq.Seq {
 	s := p.Next()
 	if s == nil {
 		return CachedEmptyList
@@ -112,7 +112,7 @@ func (p *PList) More() seq.Seq {
 	return s
 }
 
-func (p *PList) SCons(o interface{}) seq.Seq {
+func (p *PList) SCons(o interface{}) iseq.Seq {
 	return NewPListMeta1N(p.meta, o, p, p.count+1)
 }
 
@@ -128,9 +128,9 @@ func (p *PList) Peek() interface{} {
 	return p.first
 }
 
-func (p *PList) Pop() seq.PersistentStack {
+func (p *PList) Pop() iseq.PersistentStack {
 	if p.rest == nil {
-		return CachedEmptyList.WithMeta(p.meta).(seq.PersistentStack)
+		return CachedEmptyList.WithMeta(p.meta).(iseq.PersistentStack)
 	}
 	return p.rest
 }
@@ -142,8 +142,8 @@ func (p *PList) Equals(o interface{}) bool {
 		return true
 	}
 
-	if os, ok := o.(seq.Seqable); ok {
-		return sequtils.SeqEquals(p, os.Seq())
+	if os, ok := o.(iseq.Seqable); ok {
+		return sequtil.SeqEquals(p, os.Seq())
 	}
 
 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
@@ -152,7 +152,7 @@ func (p *PList) Equals(o interface{}) bool {
 
 func (p *PList) Hash() uint32 {
 	if p.hash == 0 {
-		p.hash = sequtils.HashSeq(p)
+		p.hash = sequtil.HashSeq(p)
 	}
 
 	return p.hash
@@ -160,10 +160,10 @@ func (p *PList) Hash() uint32 {
 
 func (p *PList) AddHash(h hash.Hash) {
 	if p.hash == 0 {
-		p.hash = sequtils.HashSeq(p)
+		p.hash = sequtil.HashSeq(p)
 	}
 
-	sequtils.AddHashUint64(h, uint64(p.hash))
+	sequtil.AddHashUint64(h, uint64(p.hash))
 }
 
 /*

@@ -1,11 +1,11 @@
-// Package sequtils contains some generally useful functions for implementing the Clojure sequences
-package sequtils
+// Package sequtil contains some generally useful functions for implementing the Clojure sequences
+package sequtil
 
 import (
 	"encoding/binary"
 	"hash"
 	"hash/fnv"
-	"seq"
+	"iseq"
 	//"fmt"
 	"math"
 	"reflect"
@@ -16,14 +16,14 @@ func Equals(o1 interface{}, o2 interface{}) bool {
 		return true
 	}
 
-	if e1, ok1 := o1.(seq.Equatable); ok1 {
+	if e1, ok1 := o1.(iseq.Equatable); ok1 {
 		return e1.Equals(o2)
 	}
 
 	return false
 }
 
-func SeqEquals(s1 seq.Seq, s2 seq.Seq) bool {
+func SeqEquals(s1 iseq.Seq, s2 iseq.Seq) bool {
 	if s1 == s2 {
 		return true
 	}
@@ -47,12 +47,12 @@ func Equiv(o1 interface{}, o2 interface{}) bool {
 	if o1 != nil {
 		// TODO: Determine how to handle numbers. Do we want Clojure's semantics?
 		// Go's semantics says the o1 == o2 case is enough
-		pc1, ok1 := o1.(seq.PersistentCollection)
+		pc1, ok1 := o1.(iseq.PersistentCollection)
 		if ok1 {
 			return pc1.Equiv(o2)
 		}
 
-		pc2, ok2 := o2.(seq.PersistentCollection)
+		pc2, ok2 := o2.(iseq.PersistentCollection)
 		if ok2 {
 			return pc2.Equiv(o1)
 		}
@@ -63,7 +63,7 @@ func Equiv(o1 interface{}, o2 interface{}) bool {
 	return false
 }
 
-func SeqEquiv(s1 seq.Seq, s2 seq.Seq) bool {
+func SeqEquiv(s1 iseq.Seq, s2 iseq.Seq) bool {
 	if s1 == s2 {
 		return true
 	}
@@ -85,15 +85,15 @@ func Count(o interface{}) int {
 		return 0
 	}
 
-	if cnt, ok := o.(seq.Counted); ok {
+	if cnt, ok := o.(iseq.Counted); ok {
 		return cnt.Count1()
 	}
 
-	if pc, ok := o.(seq.PersistentCollection); ok {
+	if pc, ok := o.(iseq.PersistentCollection); ok {
 		s := pc.Seq()
 		i := 0
 		for ; s != nil; s = s.Next() {
-			if c, ok := s.(seq.Counted); ok {
+			if c, ok := s.(iseq.Counted); ok {
 				return i + c.Count1()
 			}
 			i++
@@ -112,13 +112,13 @@ var (
 	zeroBytes = make([]byte, 4)
 )
 
-func HashSeq(seq seq.Seq) uint32 {
+func HashSeq(seq iseq.Seq) uint32 {
 	h := fnv.New32()
 	AddHashSeq(h, seq)
 	return h.Sum32()
 }
 
-func AddHashSeq(h hash.Hash, seq seq.Seq) {
+func AddHashSeq(h hash.Hash, seq iseq.Seq) {
 	for s := seq; s != nil; s = s.Next() {
 		if f := s.First(); f == nil {
 			h.Write(zeroBytes)
@@ -162,7 +162,7 @@ func addHashString(h hash.Hash, s string) {
 }
 
 func AddHash(h hash.Hash, v interface{}) {
-	if sh, ok := v.(seq.Hashable); ok {
+	if sh, ok := v.(iseq.Hashable); ok {
 		sh.AddHash(h)
 		return
 	}
@@ -186,7 +186,7 @@ func AddHash(h hash.Hash, v interface{}) {
 }
 
 func Hash(v interface{}) uint32 {
-	if h, ok := v.(seq.Hashable); ok {
+	if h, ok := v.(iseq.Hashable); ok {
 		return h.Hash()
 	}
 

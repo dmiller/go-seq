@@ -1,9 +1,9 @@
-package seqimpl
+package seq
 
 import (
 	"hash"
-	"seq"
-	"seq/sequtils"
+	"iseq"
+	"sequtil"
 )
 
 // Cons implements an immutable cons cell (sort of CAR/CDR, from the beginning of Lisp)
@@ -12,7 +12,7 @@ import (
 // We use 0 as an indicator that hash is not cached.
 type Cons struct {
 	first interface{}
-	more  seq.Seq
+	more  iseq.Seq
 	AMeta
 	hash uint32
 }
@@ -29,38 +29,38 @@ type Cons struct {
 
 // c-tors
 
-func NewCons(first interface{}, more seq.Seq) *Cons {
+func NewCons(first interface{}, more iseq.Seq) *Cons {
 	return &Cons{first: first, more: more}
 }
 
-func NewConsM(meta seq.PersistentMap, first interface{}, more seq.Seq) *Cons {
+func NewConsM(meta iseq.PersistentMap, first interface{}, more iseq.Seq) *Cons {
 	nc := &Cons{AMeta: AMeta{meta}, first: first, more: more}
 	return nc
 }
 
-// interface seq.Obj
+// interface iseq.Obj
 
-func (c *Cons) WithMeta(meta seq.PersistentMap) seq.Obj {
+func (c *Cons) WithMeta(meta iseq.PersistentMap) iseq.Obj {
 	return NewConsM(meta, c.first, c.more)
 }
 
-// interface seq.Seqable
+// interface iseq.Seqable
 
-func (c *Cons) Seq() seq.Seq {
+func (c *Cons) Seq() iseq.Seq {
 	return c
 }
 
-// interface seq.PersistentCollection
+// interface iseq.PersistentCollection
 
 func (c *Cons) Count() int {
-	return 1 + sequtils.Count(c.more)
+	return 1 + sequtil.Count(c.more)
 }
 
-func (c *Cons) Cons(o interface{}) seq.PersistentCollection {
+func (c *Cons) Cons(o interface{}) iseq.PersistentCollection {
 	return c.SCons(o)
 }
 
-func (c *Cons) Empty() seq.PersistentCollection {
+func (c *Cons) Empty() iseq.PersistentCollection {
 	return CachedEmptyList
 }
 
@@ -69,25 +69,25 @@ func (c *Cons) Equiv(o interface{}) bool {
 		return true
 	}
 
-	if os, ok := o.(seq.Seqable); ok {
-		return sequtils.SeqEquiv(c, os.Seq())
+	if os, ok := o.(iseq.Seqable); ok {
+		return sequtil.SeqEquiv(c, os.Seq())
 	}
 
 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
 	return false
 }
 
-// interface seq.Seq
+// interface iseq.Seq
 
 func (c *Cons) First() interface{} {
 	return c.first
 }
 
-func (c *Cons) Next() seq.Seq {
+func (c *Cons) Next() iseq.Seq {
 	return c.More().Seq()
 }
 
-func (c *Cons) More() seq.Seq {
+func (c *Cons) More() iseq.Seq {
 	if c.more == nil {
 		return CachedEmptyList
 	}
@@ -95,7 +95,7 @@ func (c *Cons) More() seq.Seq {
 	return c.more
 }
 
-func (c *Cons) SCons(o interface{}) seq.Seq {
+func (c *Cons) SCons(o interface{}) iseq.Seq {
 	return &Cons{first: o, more: c}
 }
 
@@ -106,8 +106,8 @@ func (c *Cons) Equals(o interface{}) bool {
 		return true
 	}
 
-	if os, ok := o.(seq.Seqable); ok {
-		return sequtils.SeqEquals(c, os.Seq())
+	if os, ok := o.(iseq.Seqable); ok {
+		return sequtil.SeqEquals(c, os.Seq())
 	}
 
 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
@@ -116,7 +116,7 @@ func (c *Cons) Equals(o interface{}) bool {
 
 func (c *Cons) Hash() uint32 {
 	if c.hash == 0 {
-		c.hash = sequtils.HashSeq(c)
+		c.hash = sequtil.HashSeq(c)
 	}
 
 	return c.hash
@@ -124,8 +124,8 @@ func (c *Cons) Hash() uint32 {
 
 func (c *Cons) AddHash(h hash.Hash) {
 	if c.hash == 0 {
-		c.hash = sequtils.HashSeq(c)
+		c.hash = sequtil.HashSeq(c)
 	}
 
-	sequtils.AddHashUint64(h, uint64(c.hash))
+	sequtil.AddHashUint64(h, uint64(c.hash))
 }

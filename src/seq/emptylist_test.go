@@ -1,46 +1,46 @@
-package seqimpl
+package seq
 
 import (
-	"seq"
+	"iseq"
 	"testing"
 )
 
 func TestEmptyListImplementInterfaces(t *testing.T) {
 	var c interface{} = CachedEmptyList
 
-	if _, ok := c.(seq.Obj); !ok {
+	if _, ok := c.(iseq.Obj); !ok {
 		t.Error("EmptyList must implement Obj")
 	}
 
-	if _, ok := c.(seq.Meta); !ok {
+	if _, ok := c.(iseq.Meta); !ok {
 		t.Error("EmptyList must implement Meta")
 	}
 
-	if _, ok := c.(seq.PersistentCollection); !ok {
+	if _, ok := c.(iseq.PersistentCollection); !ok {
 		t.Error("EmptyList must implement PersistentCollection")
 	}
 
-	if _, ok := c.(seq.PersistentStack); !ok {
+	if _, ok := c.(iseq.PersistentStack); !ok {
 		t.Error("EmptyList must implement PersistentStack")
 	}
 
-	if _, ok := c.(seq.PersistentList); !ok {
+	if _, ok := c.(iseq.PersistentList); !ok {
 		t.Error("EmptyList must implement PersistentList")
 	}
 
-	if _, ok := c.(seq.Seqable); !ok {
+	if _, ok := c.(iseq.Seqable); !ok {
 		t.Error("EmptyList must implement Seqable")
 	}
 
-	if _, ok := c.(seq.Counted); !ok {
+	if _, ok := c.(iseq.Counted); !ok {
 		t.Error("EmptyList must implement Counted")
 	}
 
-	if _, ok := c.(seq.Equatable); !ok {
+	if _, ok := c.(iseq.Equatable); !ok {
 		t.Error("EmptyList must implement Equatable")
 	}
 
-	if _, ok := c.(seq.Hashable); !ok {
+	if _, ok := c.(iseq.Hashable); !ok {
 		t.Error("EmptyList must implement Hashable")
 	}
 }
