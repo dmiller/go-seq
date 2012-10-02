@@ -1,6 +1,8 @@
 package seq
 
-import "iseq"
+import (
+	"iseq"
+)
 
 // AMeta provides a slot to hold a 'meta' value
 type AMeta struct {

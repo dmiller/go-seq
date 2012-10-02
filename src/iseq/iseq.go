@@ -106,6 +106,8 @@ type PersistentVector interface {
 	PersistentStack
 	Reversible
 	Indexed
+	ConsV(interface{}) PersistentVector
+	AssocN(i int, val interface{}) PersistentVector
 }
 
 type PersistentSet interface {
@@ -115,4 +117,9 @@ type PersistentSet interface {
 	Contains(key interface{}) bool
 	// Get ?? do we need ??
 
+}
+
+type Chunk interface {
+	Indexed
+	DropFirst() Chunk
 }
