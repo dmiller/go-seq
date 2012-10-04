@@ -198,7 +198,7 @@ func (v *PVector) pushTail(level uint, parent *vnode, tailNode *vnode) *vnode {
 	if level == baseShift {
 		nodeToInsert = tailNode
 	} else {
-		if child := parent.array[subidx].(*vnode); child != nil {
+		if child, ok := parent.array[subidx].(*vnode); ok {
 			nodeToInsert = v.pushTail(level-baseShift, child, tailNode)
 		} else {
 			nodeToInsert = newPath(level-baseShift, tailNode)
