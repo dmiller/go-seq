@@ -72,7 +72,11 @@ func (v *PVector) WithMeta(meta iseq.PersistentMap) iseq.Obj {
 
 // interface Seqable members
 func (v *PVector) Seq() iseq.Seq {
-	return v.chunkedSeq()
+	if cs := v.chunkedSeq(); cs != nil {
+		// avoid the dreaded nil interface problem
+		return cs
+	}
+	return nil
 }
 
 func (v *PVector) chunkedSeq() *chunkedSeq {
@@ -283,7 +287,13 @@ func (v *PVector) Pop() iseq.PersistentStack {
 		newRoot = emptyVnode
 	}
 	if v.shift > 5 && newRoot.array[1] == nil {
-		newRoot = newRoot.array[0].(*vnode)
+		newRoot, _ = newRoot.array[0].(*vnode)
+		// x := newRoot.array[0]
+		// if x == nil {
+		// 	newRoot = nil
+		// } else {
+		// 	newRoot = x.(*vnode)
+		// }
 		newShift = newShift - baseShift
 	}
 	return &PVector{AMeta: AMeta{v.meta}, cnt: v.cnt - 1, shift: newShift, root: newRoot, tail: newTail}
