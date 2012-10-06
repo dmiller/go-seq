@@ -516,7 +516,7 @@ func TestPVectorPeek(t *testing.T) {
 func TestPVectorPop(t *testing.T) {
 
 	v1 := NewPVectorFromItems("a")
-	if v1.Pop().(iseq.PCollection).Count() != 0 {
+	if v1.Pop().Count() != 0 {
 		t.Error("PVector.Pop: expected Pop to return collection of count 0")
 	}
 

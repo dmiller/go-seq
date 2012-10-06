@@ -91,19 +91,24 @@ type Reversible interface {
 	Rseq() Seq
 }
 
-type PStack interface {
+type PStackOps interface {
 	Peek() interface{}
 	Pop() PStack
 }
 
-type PList interface {
-	PStack
+type PStack interface {
 	PCollection
+	PStackOps
+}
+
+type PList interface {
+	PCollection
+	PStackOps
 }
 
 type PVector interface {
 	Associative
-	PStack
+	PStackOps
 	Reversible
 	Indexed
 	ConsV(interface{}) PVector
