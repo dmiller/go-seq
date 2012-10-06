@@ -1,27 +1,29 @@
 digraph G {
 
 	Equatable -> Hashable [weight=8];
-	Hashable -> PersistentCollection [weight=8];
-	PersistentCollection -> PersistentSet [weight=8, style="invis"];
-	PersistentSet -> PersistentMap [weight=8, style="invis"];
-	PersistentMap -> PersistentVector  [weight=8, style="invis"];
-	Seqable -> PersistentCollection;
-	PersistentCollection -> PersistentSet;
-	PersistentCollection -> Seq;
-	PersistentCollection -> PersistentList;
-	PersistentCollection -> Associative;
+	Hashable -> PCollection [weight=8];
+	PCollection -> PSet [weight=8, style="invis"];
+	PSet -> PMap [weight=8, style="invis"];
+	PMap -> PVector  [weight=8, style="invis"];
+	Seqable -> PCollection;
+	PCollection -> PSet;
+	PCollection -> Seq;
+	PCollection -> PList;
+	PCollection -> Associative;
+	PCollection -> PStack;
 	Counted -> Indexed;
 	Indexed -> IndexedSeq;
 	Seq -> IndexedSeq;
-	Counted -> PersistentSet;
-	Counted -> PersistentMap
+	Counted -> PSet;
+	Counted -> PMap
 	Lookup -> Associative;
-	Associative -> PersistentMap;
-	Associative -> PersistentVector;
-	Reversible -> PersistentVector;
-	Indexed -> PersistentVector;
-	PersistentStack -> PersistentVector;
-	PersistentStack	-> PersistentList;
+	Associative -> PMap;
+	Associative -> PVector;
+	Reversible -> PVector;
+	Indexed -> PVector;
+	PStackOps -> PStack;
+	PStackOps -> PVector;
+	PStackOps	-> PList;
 
 
 
