@@ -16,16 +16,16 @@ func TestEmptyListImplementInterfaces(t *testing.T) {
 		t.Error("EmptyList must implement Meta")
 	}
 
-	if _, ok := c.(iseq.PersistentCollection); !ok {
-		t.Error("EmptyList must implement PersistentCollection")
+	if _, ok := c.(iseq.PCollection); !ok {
+		t.Error("EmptyList must implement PCollection")
 	}
 
-	if _, ok := c.(iseq.PersistentStack); !ok {
-		t.Error("EmptyList must implement PersistentStack")
+	if _, ok := c.(iseq.PStack); !ok {
+		t.Error("EmptyList must implement PStack")
 	}
 
-	if _, ok := c.(iseq.PersistentList); !ok {
-		t.Error("EmptyList must implement PersistentList")
+	if _, ok := c.(iseq.PList); !ok {
+		t.Error("EmptyList must implement PList")
 	}
 
 	if _, ok := c.(iseq.Seqable); !ok {

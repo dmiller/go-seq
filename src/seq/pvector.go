@@ -37,7 +37,7 @@ var (
 
 func NewPVectorFromISeq(items iseq.Seq) *PVector {
 	// TODO: redo when we have transients
-	var ret iseq.PersistentVector = EmptyPVector
+	var ret iseq.PVector = EmptyPVector
 	for ; items != nil; items = items.Next() {
 		ret = ret.ConsV(items.First())
 	}
@@ -46,7 +46,7 @@ func NewPVectorFromISeq(items iseq.Seq) *PVector {
 
 func NewPVectorFromSlice(items []interface{}) *PVector {
 	// TODO: redo when we have transients
-	var ret iseq.PersistentVector = EmptyPVector
+	var ret iseq.PVector = EmptyPVector
 	for _, item := range items {
 		ret = ret.ConsV(item)
 	}
@@ -57,8 +57,8 @@ func NewPVectorFromItems(items ...interface{}) *PVector {
 	return NewPVectorFromSlice(items)
 }
 
-//  PVector needs to implement the following seq interfaces:
-//        Obj Meta Seqable PersistentCollection Lookup Associative PersistentStack PersistentVector Counted Reversible Indexed
+//  PVector needs to implement the following iseq interfaces:
+//        Obj Meta Seqable PCollection Lookup Associative PStack PVector Counted Reversible Indexed
 //  Are we going to do EditableCollection?
 //  Also, Equatable and Hashable
 //
@@ -66,7 +66,7 @@ func NewPVectorFromItems(items ...interface{}) *PVector {
 
 // interface Obj
 
-func (v *PVector) WithMeta(meta iseq.PersistentMap) iseq.Obj {
+func (v *PVector) WithMeta(meta iseq.PMap) iseq.Obj {
 	return &PVector{AMeta: AMeta{meta}, cnt: v.cnt, shift: v.shift, root: v.root, tail: v.tail}
 }
 
@@ -86,18 +86,18 @@ func (v *PVector) chunkedSeq() *chunkedSeq {
 	return newChunkedSeq(v, 0, 0)
 }
 
-// interface PersistentCollection
+// interface PCollection
 
 func (v *PVector) Count() int {
 	return v.cnt
 }
 
-func (v *PVector) Cons(o interface{}) iseq.PersistentCollection {
+func (v *PVector) Cons(o interface{}) iseq.PCollection {
 	return v.ConsV(o)
 }
 
-func (v *PVector) Empty() iseq.PersistentCollection {
-	return CachedEmptyList.WithMeta(v.Meta()).(iseq.PersistentCollection)
+func (v *PVector) Empty() iseq.PCollection {
+	return CachedEmptyList.WithMeta(v.Meta()).(iseq.PCollection)
 }
 
 func (v *PVector) Equiv(o interface{}) bool {
@@ -159,10 +159,10 @@ func (v *PVector) Assoc(key interface{}, val interface{}) iseq.Associative {
 	panic("Index must be an integer")
 }
 
-// interface PersistentVector
+// interface PVector
 
 // ConsV creates a new vector with a new item at the end
-func (v *PVector) ConsV(o interface{}) iseq.PersistentVector {
+func (v *PVector) ConsV(o interface{}) iseq.PVector {
 	if v.cnt-v.tailoff() < branchFactor {
 		newTail := make([]interface{}, len(v.tail)+1)
 		copy(newTail, v.tail)
@@ -223,7 +223,7 @@ func newPath(level uint, node *vnode) *vnode {
 }
 
 // AssocV returns a new vector with the i-th value set to the given value
-func (v *PVector) AssocN(i int, val interface{}) iseq.PersistentVector {
+func (v *PVector) AssocN(i int, val interface{}) iseq.PVector {
 	if i >= 0 && i < v.cnt {
 		if i >= v.tailoff() {
 			newTail := make([]interface{}, len(v.tail))
@@ -253,7 +253,7 @@ func doAssoc(level uint, node *vnode, i int, val interface{}) *vnode {
 	return &vnode{array: newArray}
 }
 
-// interface PersistentStack
+// interface PStack
 
 func (v *PVector) Peek() interface{} {
 	if v.cnt > 0 {
@@ -262,7 +262,7 @@ func (v *PVector) Peek() interface{} {
 	return nil
 }
 
-func (v *PVector) Pop() iseq.PersistentStack {
+func (v *PVector) Pop() iseq.PStack {
 	// TODO: convert to switch
 	if v.cnt == 0 {
 		// TODO: determine if pop should have other behavior
@@ -270,7 +270,7 @@ func (v *PVector) Pop() iseq.PersistentStack {
 	}
 
 	if v.cnt == 1 {
-		return EmptyPVector.WithMeta(v.meta).(iseq.PersistentStack)
+		return EmptyPVector.WithMeta(v.meta).(iseq.PStack)
 	}
 
 	if v.cnt-v.tailoff() > 1 {
@@ -360,7 +360,7 @@ func (p *PVector) Equals(o interface{}) bool {
 		return true
 	}
 
-	if ov, ok := o.(iseq.PersistentVector); ok {
+	if ov, ok := o.(iseq.PVector); ok {
 		if p.Count1() != ov.Count1() {
 			return false
 		}
@@ -413,15 +413,15 @@ func (p *PVector) AddHash(h hash.Hash) {
 
 
 
-   static public PersistentVector create1(ICollection items)
+   static public PVector create1(ICollection items)
    {
        ITransientCollection ret = EMPTY.asTransient();
        foreach (object item in items)
            ret = ret.conj(item);
-       return (PersistentVector)ret.persistent();
+       return (PVector)ret.P();
    }
 
-   public PersistentVector(int cnt, int shift, Node root, object[] tail)
+   public PVector(int cnt, int shift, Node root, object[] tail)
    {
        _meta = null;
        _cnt = cnt;
@@ -430,7 +430,7 @@ func (p *PVector) AddHash(h hash.Hash) {
        _tail = tail;
    }
 
-   PersistentVector(IPersistentMap meta, int cnt, int shift, Node root, object[] tail)
+   PVector(IPMap meta, int cnt, int shift, Node root, object[] tail)
    {
        _meta = meta;
        _cnt = cnt;

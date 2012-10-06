@@ -15,7 +15,7 @@ type chunkedSeq struct {
 }
 
 //  chunkedSeq needs to implement the following iseq interfaces:
-//        Obj Meta Seq IPersistentCollection Sequential ChunkedSeq
+//        Obj Meta Seq IPCollection Sequential ChunkedSeq
 //  Also, Equatable and Hashable
 
 // c-tors
@@ -24,7 +24,7 @@ func newChunkedSeq(v *PVector, i int, offset int) *chunkedSeq {
 	return newChunkedSeqM(nil, v, v.arrayFor(i), i, offset)
 }
 
-func newChunkedSeqM(meta iseq.PersistentMap, v *PVector, node []interface{}, i int, offset int) *chunkedSeq {
+func newChunkedSeqM(meta iseq.PMap, v *PVector, node []interface{}, i int, offset int) *chunkedSeq {
 	return &chunkedSeq{AMeta: AMeta{meta}, vec: v, node: node, idx: i, offset: offset}
 }
 
@@ -34,7 +34,7 @@ func newChunkedSeqRaw(v *PVector, node []interface{}, i int, offset int) *chunke
 
 // interface Obj
 
-func (c *chunkedSeq) WithMeta(meta iseq.PersistentMap) iseq.Obj {
+func (c *chunkedSeq) WithMeta(meta iseq.PMap) iseq.Obj {
 	if meta == c.meta {
 		return c
 	}
@@ -62,7 +62,7 @@ func (c *chunkedSeq) ChunkedMore() iseq.Seq {
 	return s
 }
 
-// interface PersistentCollection
+// interface PCollection
 
 func (c *chunkedSeq) Seq() iseq.Seq {
 	return c
@@ -79,11 +79,11 @@ func (c *chunkedSeq) Count() int {
 	return i
 }
 
-func (c *chunkedSeq) Cons(o interface{}) iseq.PersistentCollection {
+func (c *chunkedSeq) Cons(o interface{}) iseq.PCollection {
 	return NewCons(o, c)
 }
 
-func (c *chunkedSeq) Empty() iseq.PersistentCollection {
+func (c *chunkedSeq) Empty() iseq.PCollection {
 	return CachedEmptyList
 }
 

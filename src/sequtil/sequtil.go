@@ -47,12 +47,12 @@ func Equiv(o1 interface{}, o2 interface{}) bool {
 	if o1 != nil {
 		// TODO: Determine how to handle numbers. Do we want Clojure's semantics?
 		// Go's semantics says the o1 == o2 case is enough
-		pc1, ok1 := o1.(iseq.PersistentCollection)
+		pc1, ok1 := o1.(iseq.PCollection)
 		if ok1 {
 			return pc1.Equiv(o2)
 		}
 
-		pc2, ok2 := o2.(iseq.PersistentCollection)
+		pc2, ok2 := o2.(iseq.PCollection)
 		if ok2 {
 			return pc2.Equiv(o1)
 		}
@@ -89,7 +89,7 @@ func Count(o interface{}) int {
 		return cnt.Count1()
 	}
 
-	if pc, ok := o.(iseq.PersistentCollection); ok {
+	if pc, ok := o.(iseq.PCollection); ok {
 		s := pc.Seq()
 		i := 0
 		for ; s != nil; s = s.Next() {

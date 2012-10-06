@@ -8,7 +8,7 @@ import (
 )
 
 //  PVector needs to implement the following seq interfaces:
-//        Obj Meta Seqable PersistentCollection Lookup Associative PersistentStack PersistentVector Counted Reversible Indexed
+//        Obj Meta Seqable PCollection Lookup Associative PStack PVector Counted Reversible Indexed
 //  Are we going to do EditableCollection?
 //  Also, Equatable and Hashable
 func TestPVectorImplementInterfaces(t *testing.T) {
@@ -22,12 +22,12 @@ func TestPVectorImplementInterfaces(t *testing.T) {
 		t.Error("PList must implement Meta")
 	}
 
-	if _, ok := c.(iseq.PersistentCollection); !ok {
-		t.Error("PList must implement PersistentCollection")
+	if _, ok := c.(iseq.PCollection); !ok {
+		t.Error("PList must implement PCollection")
 	}
 
-	if _, ok := c.(iseq.PersistentStack); !ok {
-		t.Error("PList must implement PersistentStack")
+	if _, ok := c.(iseq.PStack); !ok {
+		t.Error("PList must implement PStack")
 	}
 
 	if _, ok := c.(iseq.Lookup); !ok {
@@ -38,8 +38,8 @@ func TestPVectorImplementInterfaces(t *testing.T) {
 		t.Error("PList must implement Counted")
 	}
 
-	if _, ok := c.(iseq.PersistentVector); !ok {
-		t.Error("PList must implement PersistentList")
+	if _, ok := c.(iseq.PVector); !ok {
+		t.Error("PList must implement PList")
 	}
 
 	if _, ok := c.(iseq.Seqable); !ok {
@@ -209,7 +209,7 @@ func TestPVectorSeqable(t *testing.T) {
 	}
 }
 
-// iseq.PersistentCollection tests
+// iseq.PCollection tests
 
 func TestPVectorCons(t *testing.T) {
 	v3 := NewPVectorFromItems("abc", 4, 5)
@@ -266,7 +266,7 @@ func TestPVectorConses(t *testing.T) {
 	}
 }
 
-// iseq.PersistentVector tests
+// iseq.PVector tests
 
 func TestPVectorConsV(t *testing.T) {
 	v3 := NewPVectorFromItems("abc", 4, 5)
@@ -346,7 +346,7 @@ func TestPVectorAssocNBadIndexHigh(t *testing.T) {
 
 func TestPVectorAssocNBig(t *testing.T) {
 	v, _ := makeRangePVector(100000)
-	var nv iseq.PersistentVector = v
+	var nv iseq.PVector = v
 	for i := 0; i < 110000; i++ {
 		nv = nv.AssocN(i, i+20)
 	}
@@ -500,7 +500,7 @@ func TestPVectorIndexedBadIndexHigh(t *testing.T) {
 	v3.Nth(10)
 }
 
-// iseq.PersistentStack tests
+// iseq.PStack tests
 
 func TestPVectorPeek(t *testing.T) {
 	if EmptyPVector.Peek() != nil {
@@ -516,17 +516,17 @@ func TestPVectorPeek(t *testing.T) {
 func TestPVectorPop(t *testing.T) {
 
 	v1 := NewPVectorFromItems("a")
-	if v1.Pop().(iseq.PersistentCollection).Count() != 0 {
+	if v1.Pop().(iseq.PCollection).Count() != 0 {
 		t.Error("PVector.Pop: expected Pop to return collection of count 0")
 	}
 
 	v, _ := makeRangePVector(100000)
-	var s iseq.PersistentStack = v
+	var s iseq.PStack = v
 	for i := 16; i < 100000; i++ {
 		s = s.Pop()
 	}
 
-	vs, ok := s.(iseq.PersistentVector)
+	vs, ok := s.(iseq.PVector)
 	if !ok {
 		t.Errorf("PVector.Pop: expected pop result to be PVector, got a %T", s)
 	}

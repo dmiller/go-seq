@@ -6,7 +6,7 @@ import (
 	"sequtil"
 )
 
-// EmptyList implements an empty PersistentList
+// EmptyList implements an empty iseq.PList
 type EmptyList struct {
 	AMeta
 }
@@ -15,19 +15,19 @@ var (
 	CachedEmptyList = &EmptyList{}
 )
 
-// Cons needs to implement the seq interfaces: 
-//    Obj, Meta, Seq, Sequential, PersistentCollection, PersistentStack, PersistentList, Seqable, Counted
+// Cons needs to implement the iseq interfaces: 
+//    Obj, Meta, Seq, Sequential, PCollection, PStack, PList, Seqable, Counted
 //   Also, Equatable and Hashable
 //
 // Sequential is a marker interface that I haven't figured out how to translate
 //    because I can't figure out a significant use of it in the Clojure code
-// PersistentList is just PersistentStack + PersistentCollection, so nothing added
+// PList is just PStack + PCollection, so nothing added
 
 // interface Meta is covered by the AMeta embedding
 
 // interface iseq.Obj
 
-func (e *EmptyList) WithMeta(meta iseq.PersistentMap) iseq.Obj {
+func (e *EmptyList) WithMeta(meta iseq.PMap) iseq.Obj {
 	e2 := &EmptyList{}
 	e2.meta = meta
 	return e2
@@ -39,17 +39,17 @@ func (e *EmptyList) Seq() iseq.Seq {
 	return nil
 }
 
-// interface iseq.PersistentCollection
+// interface iseq.PCollection
 
 func (e *EmptyList) Count() int {
 	return 0
 }
 
-func (e *EmptyList) Cons(o interface{}) iseq.PersistentCollection {
+func (e *EmptyList) Cons(o interface{}) iseq.PCollection {
 	return e.SCons(o)
 }
 
-func (e *EmptyList) Empty() iseq.PersistentCollection {
+func (e *EmptyList) Empty() iseq.PCollection {
 	return e
 }
 
@@ -81,8 +81,8 @@ func (e *EmptyList) More() iseq.Seq {
 }
 
 func (e *EmptyList) SCons(o interface{}) iseq.Seq {
-	// TODO: really, this needs to return a PersistentList of one element.
-	// Fix when we have a true PersistentList
+	// TODO: really, this needs to return a PList of one element.
+	// Fix when we have a true PList
 	return &Cons{first: o, more: e}
 }
 
@@ -92,13 +92,13 @@ func (e *EmptyList) Count1() int {
 	return 0
 }
 
-// PersistentStack
+// PStack
 
 func (e *EmptyList) Peek() interface{} {
 	return nil
 }
 
-func (e *EmptyList) Pop() iseq.PersistentStack {
+func (e *EmptyList) Pop() iseq.PStack {
 	// in Clojure, popping throws an exception
 	// should we add another return value?
 	// For the moment, just return nil

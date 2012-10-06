@@ -68,7 +68,7 @@ func TestNewPlist1N(t *testing.T) {
 	}
 }
 
-// TODO: add tests for c-tor with meta -- we need a PersistentMap implementation first
+// TODO: add tests for c-tor with meta -- we need a PMap implementation first
 
 func TestPListImplementInterfaces(t *testing.T) {
 	var c interface{} = NewPList1("abc")
@@ -81,16 +81,16 @@ func TestPListImplementInterfaces(t *testing.T) {
 		t.Error("PList must implement Meta")
 	}
 
-	if _, ok := c.(iseq.PersistentCollection); !ok {
-		t.Error("PList must implement PersistentCollection")
+	if _, ok := c.(iseq.PCollection); !ok {
+		t.Error("PList must implement PCollection")
 	}
 
-	if _, ok := c.(iseq.PersistentStack); !ok {
-		t.Error("PList must implement PersistentStack")
+	if _, ok := c.(iseq.PStack); !ok {
+		t.Error("PList must implement PStack")
 	}
 
-	if _, ok := c.(iseq.PersistentList); !ok {
-		t.Error("PList must implement PersistentList")
+	if _, ok := c.(iseq.PList); !ok {
+		t.Error("PList must implement PList")
 	}
 
 	if _, ok := c.(iseq.Seqable); !ok {
@@ -154,7 +154,7 @@ func TestPListCons(t *testing.T) {
 		t.Error("Cons has a bad rest")
 	}
 
-	// TODO: test preservation of meta when we have a PersistentMap implementation
+	// TODO: test preservation of meta when we have a PMap implementation
 }
 
 // TODO: test Seq has meta
@@ -166,7 +166,7 @@ func TestPListEmpty(t *testing.T) {
 		t.Error("Empty returns a non-empty list")
 	}
 
-	// TODO: test preservation of meta when we have a PersistentMap implementation
+	// TODO: test preservation of meta when we have a PMap implementation
 }
 
 func TestPListEquiv(t *testing.T) {

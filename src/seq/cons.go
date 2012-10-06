@@ -6,7 +6,7 @@ import (
 	"sequtil"
 )
 
-// Cons implements an immutable cons cell (sort of CAR/CDR, from the beginning of Lisp)
+// Cons implements an immutable cons cell (think CAR/CDR, for the old-timers)
 //
 // Zero value is (nil) (list of one element, nil), nil metadata, hash not cached.
 // We use 0 as an indicator that hash is not cached.
@@ -17,8 +17,8 @@ type Cons struct {
 	hash uint32
 }
 
-// Cons needs to implement the seq interfaces: 
-//    Obj, Meta, Seq, Sequential, PersistentCollection, Seqable, IHashEq
+// Cons needs to implement the iseq interfaces: 
+//    Obj, Meta, Seq, Sequential, PCollection, Seqable, IHashEq
 //   Also, Equatable and Hashable
 //
 // I'm not sure yet if I'll be doing IHashEq
@@ -33,14 +33,14 @@ func NewCons(first interface{}, more iseq.Seq) *Cons {
 	return &Cons{first: first, more: more}
 }
 
-func NewConsM(meta iseq.PersistentMap, first interface{}, more iseq.Seq) *Cons {
+func NewConsM(meta iseq.PMap, first interface{}, more iseq.Seq) *Cons {
 	nc := &Cons{AMeta: AMeta{meta}, first: first, more: more}
 	return nc
 }
 
 // interface iseq.Obj
 
-func (c *Cons) WithMeta(meta iseq.PersistentMap) iseq.Obj {
+func (c *Cons) WithMeta(meta iseq.PMap) iseq.Obj {
 	return NewConsM(meta, c.first, c.more)
 }
 
@@ -50,17 +50,17 @@ func (c *Cons) Seq() iseq.Seq {
 	return c
 }
 
-// interface iseq.PersistentCollection
+// interface iseq.PCollection
 
 func (c *Cons) Count() int {
 	return 1 + sequtil.Count(c.more)
 }
 
-func (c *Cons) Cons(o interface{}) iseq.PersistentCollection {
+func (c *Cons) Cons(o interface{}) iseq.PCollection {
 	return c.SCons(o)
 }
 
-func (c *Cons) Empty() iseq.PersistentCollection {
+func (c *Cons) Empty() iseq.PCollection {
 	return CachedEmptyList
 }
 

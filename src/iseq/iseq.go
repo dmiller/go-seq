@@ -19,16 +19,16 @@ type Seqable interface {
 	Seq() Seq
 }
 
-type PersistentCollection interface {
+type PCollection interface {
 	Seqable
 	Count() int
-	Cons(o interface{}) PersistentCollection
-	Empty() PersistentCollection
+	Cons(o interface{}) PCollection
+	Empty() PCollection
 	Equiv(o interface{}) bool
 }
 
 type Seq interface {
-	PersistentCollection
+	PCollection
 	First() interface{}
 	Next() Seq
 	More() Seq
@@ -50,29 +50,29 @@ type Counted interface {
 }
 
 type Associative interface {
-	PersistentCollection
+	PCollection
 	Lookup
 	ContainsKey(key interface{}) bool
 	EntryAt(key interface{}) MapEntry
 	Assoc(key interface{}, val interface{}) Associative
 }
 
-type PersistentMap interface {
+type PMap interface {
 	Associative
 	Counted
-	AssocM(key interface{}, val interface{}) PersistentMap
-	AssocEx(key interface{}, val interface{}) (result PersistentMap, ok bool)
-	Without(key interface{}) (result PersistentMap, same bool)
-	ConsM(e MapEntry) PersistentMap
+	AssocM(key interface{}, val interface{}) PMap
+	AssocEx(key interface{}, val interface{}) (result PMap, ok bool)
+	Without(key interface{}) (result PMap, same bool)
+	ConsM(e MapEntry) PMap
 }
 
 type Meta interface {
-	Meta() PersistentMap
+	Meta() PMap
 }
 
 type Obj interface {
 	Meta
-	WithMeta(meta PersistentMap) Obj
+	WithMeta(meta PMap) Obj
 }
 
 type Indexed interface {
@@ -91,29 +91,29 @@ type Reversible interface {
 	Rseq() Seq
 }
 
-type PersistentStack interface {
+type PStack interface {
 	Peek() interface{}
-	Pop() PersistentStack
+	Pop() PStack
 }
 
-type PersistentList interface {
-	PersistentStack
-	PersistentCollection
+type PList interface {
+	PStack
+	PCollection
 }
 
-type PersistentVector interface {
+type PVector interface {
 	Associative
-	PersistentStack
+	PStack
 	Reversible
 	Indexed
-	ConsV(interface{}) PersistentVector
-	AssocN(i int, val interface{}) PersistentVector
+	ConsV(interface{}) PVector
+	AssocN(i int, val interface{}) PVector
 }
 
-type PersistentSet interface {
-	PersistentCollection
+type PSet interface {
+	PCollection
 	Counted
-	Disjoin(key interface{}) PersistentSet
+	Disjoin(key interface{}) PSet
 	Contains(key interface{}) bool
 	// Get ?? do we need ??
 

@@ -6,20 +6,20 @@ import (
 	"sequtil"
 )
 
-// PList implements a persistent list
+// PList implements a persistent immutable list
 //
 // Zero value is not valid!
 // We use 0 as an indicator that hash is not cached.
 type PList struct {
 	first interface{}
-	rest  iseq.PersistentList
+	rest  iseq.PList
 	count int
 	AMeta
 	hash uint32
 }
 
-// PList needs to implement the seq interfaces: 
-//    Obj, Meta, Seq, Sequential, PersistentList (= PersistentCollection + PersistentStack), Seqable, Counted, IHashEq
+// PList needs to implement the iseq interfaces: 
+//    Obj, Meta, Seq, Sequential, PList (= PCollection + PStack), Seqable, Counted, IHashEq
 //   Also, Equatable and Hashable
 //
 // I'm not sure yet if I'll be doing IHashEq
@@ -34,11 +34,11 @@ func NewPList1(first interface{}) *PList {
 	return &PList{first: first, count: 1}
 }
 
-func NewPList1N(first interface{}, rest iseq.PersistentList, count int) *PList {
+func NewPList1N(first interface{}, rest iseq.PList, count int) *PList {
 	return &PList{first: first, rest: rest, count: count}
 }
 
-func NewPListMeta1N(meta iseq.PersistentMap, first interface{}, rest iseq.PersistentList, count int) *PList {
+func NewPListMeta1N(meta iseq.PMap, first interface{}, rest iseq.PList, count int) *PList {
 	return &PList{AMeta: AMeta{meta}, first: first, rest: rest, count: count}
 }
 
@@ -54,7 +54,7 @@ func NewPListFromSlice(init []interface{}) *PList {
 
 // interface iseq.Obj
 
-func (p *PList) WithMeta(meta iseq.PersistentMap) iseq.Obj {
+func (p *PList) WithMeta(meta iseq.PMap) iseq.Obj {
 	return NewPListMeta1N(meta, p.first, p.rest, p.count)
 }
 
@@ -64,18 +64,18 @@ func (p *PList) Seq() iseq.Seq {
 	return p
 }
 
-// interface iseq.PersistentCollection
+// interface iseq.PCollection
 
 func (p *PList) Count() int {
 	return p.count
 }
 
-func (p *PList) Cons(o interface{}) iseq.PersistentCollection {
+func (p *PList) Cons(o interface{}) iseq.PCollection {
 	return p.SCons(o)
 }
 
-func (p *PList) Empty() iseq.PersistentCollection {
-	return CachedEmptyList.WithMeta(p.meta).(iseq.PersistentCollection)
+func (p *PList) Empty() iseq.PCollection {
+	return CachedEmptyList.WithMeta(p.meta).(iseq.PCollection)
 }
 
 func (p *PList) Equiv(o interface{}) bool {
@@ -122,15 +122,15 @@ func (p *PList) Count1() int {
 	return p.count
 }
 
-// PersistentStack
+// PStack
 
 func (p *PList) Peek() interface{} {
 	return p.first
 }
 
-func (p *PList) Pop() iseq.PersistentStack {
+func (p *PList) Pop() iseq.PStack {
 	if p.rest == nil {
-		return CachedEmptyList.WithMeta(p.meta).(iseq.PersistentStack)
+		return CachedEmptyList.WithMeta(p.meta).(iseq.PStack)
 	}
 	return p.rest
 }

@@ -25,7 +25,7 @@ func TestConsCtors(t *testing.T) {
 		t.Error("NewCons ctor did nto initialize more/next")
 	}
 
-	// TODO: add tests for c-tor with meta -- we need a PersistentMap implementation first
+	// TODO: add tests for c-tor with meta -- we need a PMap implementation first
 }
 
 func TestConsImplementInterfaces(t *testing.T) {
@@ -39,8 +39,8 @@ func TestConsImplementInterfaces(t *testing.T) {
 		t.Error("Cons must implement Meta")
 	}
 
-	if _, ok := c.(iseq.PersistentCollection); !ok {
-		t.Error("Cons must implement PersistentCollection")
+	if _, ok := c.(iseq.PCollection); !ok {
+		t.Error("Cons must implement PCollection")
 	}
 
 	if _, ok := c.(iseq.Seqable); !ok {
