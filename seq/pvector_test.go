@@ -6,8 +6,8 @@ package seq
 
 import (
 	//"fmt"
-	"iseq"
-	"sequtil"
+	"github.com/dmiller/go-seq/iseq"
+	"github.com/dmiller/go-seq/sequtil"
 	"testing"
 )
 

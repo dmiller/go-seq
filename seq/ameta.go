@@ -5,7 +5,7 @@
 package seq
 
 import (
-	"iseq"
+	"github.com/dmiller/go-seq/iseq"
 )
 
 // AMeta provides a slot to hold a 'meta' value

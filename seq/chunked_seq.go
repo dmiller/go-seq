@@ -5,8 +5,8 @@
 package seq
 
 import (
-	"iseq"
-	"sequtil"
+	"github.com/dmiller/go-seq/iseq"
+	"github.com/dmiller/go-seq/sequtil"
 )
 
 // chunkedSeq provides a chunked seq over a PVector

@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"hash"
 	"hash/fnv"
-	"iseq"
+	"github.com/dmiller/go-seq/iseq"
 	//"fmt"
 	"math"
 	"reflect"

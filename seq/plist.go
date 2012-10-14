@@ -6,8 +6,8 @@ package seq
 
 import (
 	"hash"
-	"iseq"
-	"sequtil"
+	"github.com/dmiller/go-seq/iseq"
+	"github.com/dmiller/go-seq/sequtil"
 )
 
 // PList implements a persistent immutable list
