@@ -44,6 +44,33 @@ func SeqEquals(s1 iseq.Seq, s2 iseq.Seq) bool {
 	return iter2 == nil
 }
 
+func MapEquals(m1 iseq.PMap, obj interface{}) bool {
+	if m1 == obj {
+		return true
+	}
+
+	if _,ok := obj.(map[interface{}]interface{}); ok {
+		// TODO: figure out how to handle go maps
+		return false
+	}
+
+	if m2,ok := obj.(iseq.PMap); ok {
+		if m1.Count() != m2.Count() {
+			return false
+		}
+
+		for s := m1.Seq(); s != nil; s = s.Next() {
+			me := s.First().(iseq.MapEntry)
+			found := m2.ContainsKey(me.Key())
+			if ! found || !Equals(me.Val(),m2.ValAt(me.Key())) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 func Equiv(o1 interface{}, o2 interface{}) bool {
 	if o1 == o2 {
 		return true
@@ -112,6 +139,18 @@ func Count(o interface{}) int {
 	panic("Count not supported on this type")
 }
 
+// Only call this on known non-empty
+func SeqCount(s0 iseq.Seq) int {
+	i := 1 // if we are here, it is non-empty
+	for s := s0.Next(); s != nil; s, i = s.Next(), i+1 {
+		if cnt, ok := s.(iseq.Counted); ok {
+			return i + cnt.Count1()
+		}
+	}
+	return i
+}
+
+
 var (
 	zeroBytes = make([]byte, 4)
 )
@@ -132,6 +171,21 @@ func AddHashSeq(h hash.Hash, seq iseq.Seq) {
 	}
 }
 
+func HashMap(m iseq.PMap) uint32 {
+	h := fnv.New32()
+	AddHashMap(h,m)
+	return h.Sum32()
+}
+
+func AddHashMap(h hash.Hash, m iseq.PMap) {
+	for s := m.Seq(); s != nil; s = s.Next() {
+		me := s.First().(iseq.MapEntry)
+		AddHash(h,me.Key())
+		AddHash(h,me.Val())
+	}
+}
+
+
 func HashUint64(v uint64) uint32 {
 	h := fnv.New32()
 	AddHashUint64(h, v)
@@ -139,7 +193,7 @@ func HashUint64(v uint64) uint32 {
 }
 
 func AddHashUint64(h hash.Hash, v uint64) {
-	data := make([]byte, 4)
+	data := make([]byte, 8)
 	binary.LittleEndian.PutUint64(data, v)
 	h.Write(data)
 }
@@ -210,3 +264,74 @@ func Hash(v interface{}) uint32 {
 	}
 	panic("Cannot hash element")
 }
+
+// TODO: investigate use of IHashEq
+func Hasheq(o interface{}) uint32 {
+	if o == nil {
+		return 1
+	}
+
+	// if ihe,ok := o.(iseq.HashEq); ok {
+	// 	return ih3.hasheq()
+	// }
+
+	return Hash(o)
+}
+
+func MapCons(m iseq.PMap, o interface{}) iseq.PMap {
+	if me, ok := o.(iseq.MapEntry); ok {
+		return m.AssocM(me.Key(),me.Val())
+	}
+
+	if v, ok := o.(iseq.PVector); ok {
+		if v.Count() != 2 {
+			panic("Vector arg to map cons must be a pair")
+		}
+		return m.AssocM(v.Nth(0),v.Nth(1))
+	}
+	
+	var ret iseq.PMap
+	for s := ConvertToSeq(o); s != nil; s = s.Next() {
+		me := s.First().(iseq.MapEntry)
+		ret = ret.AssocM(me.Key(),me.Val())
+	}
+	return ret
+}
+
+func ConvertToSeq(o interface{}) iseq.Seq {
+	// TODO: handle more general cases of maps, slices, arrays
+	if o == nil {
+		return nil
+	}
+	if s, ok := o.(iseq.Seq); ok {
+		return s
+	}
+
+	if s, ok := o.(iseq.Seqable); ok {
+		return s.Seq()
+	}
+	return nil
+	// or maybe panic?
+}
+
+func BitCount(x int32) int {
+	x = x - ((x >> 1) & 0x55555555)
+	x = (((x >> 2) & 0x33333333) + (x & 0x33333333))
+	x = (((x >> 4) + x) & 0x0f0f0f0f)
+	return int(((x * 0x01010101) >> 24))
+}
+
+
+// A variant of the above that avoids multiplying
+// This algo is in a lot of places.
+// See, for example, http://aggregate.org/MAGIC/#Population%20Count%20(Ones%20Count)
+func BitCountU(x uint32) int {
+	x = x- ((x >> 1) & 0x55555555);
+	x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
+	x = (((x >> 4) + x) & 0x0f0f0f0f);
+	x = x + (x >> 8);
+	x = x +(x >> 16);
+	return int(x & 0x0000003f);
+}
+
+

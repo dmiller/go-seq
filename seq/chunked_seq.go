@@ -73,14 +73,7 @@ func (c *chunkedSeq) Seq() iseq.Seq {
 }
 
 func (c *chunkedSeq) Count() int {
-	// TODO: find out where this is duplicated; originally from ASeq.cs
-	i := 1 // if we are here, it is non-empty
-	for s := c.Next(); s != nil; s, i = s.Next(), i+1 {
-		if cnt, ok := s.(iseq.Counted); ok {
-			return i + cnt.Count1()
-		}
-	}
-	return i
+	return sequtil.SeqCount(c)
 }
 
 func (c *chunkedSeq) Cons(o interface{}) iseq.PCollection {

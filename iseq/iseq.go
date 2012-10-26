@@ -65,8 +65,7 @@ type PMap interface {
 	Associative
 	Counted
 	AssocM(key interface{}, val interface{}) PMap
-	AssocEx(key interface{}, val interface{}) (result PMap, ok bool)
-	Without(key interface{}) (result PMap, same bool)
+	Without(key interface{}) PMap
 	ConsM(e MapEntry) PMap
 }
 
