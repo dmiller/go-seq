@@ -172,13 +172,226 @@ func TestPHashMapGoesBig(t *testing.T) {
 	}
 }
 
-// func TestPHashMapHasProblem(t *testing.T) {
-// 	var m iseq.PMap = EmptyPHashMap
-// 	for i := 0; i<100; i++ {
-// 		m = m.AssocM(i,i*10)
-// 		fmt.Printf("%v\n",i)
-// 		if m.Count() != i+1 {
-// 			t.Errorf("Count is %v, should be %v\n",m.Count(),i+1)
-// 		}
-// 	}
-// }
+
+// interface iseq.Obj
+
+// TODO: test WithMeta once we have PMap
+
+// interface iseq.Associative, iseq.Lookup
+
+const bigTestPHashMapSize = 100000
+var bigTestPHashMapSlice = createBigSliceForPHashMapTest(bigTestPHashMapSize)
+var bigTestPHashMap = NewPHashMapFromSlice(bigTestPHashMapSlice)
+
+func TestPHashMapContainsAndValAtAndEntryAt(t *testing.T) {
+	m1 := NewPHashMapFromItems(1,2,3,4,nil,6)
+	m2 := NewPHashMapFromItems(1,2,3,4,5,6)
+
+	if !m1.ContainsKey(nil) {
+		t.Error("Expected to find nil key")
+	}
+	if m2.ContainsKey(nil) {
+		t.Error("Did not expect to find nil key")
+	}
+	for _,k := range []int{1,3,5} {
+		if ! m2.ContainsKey(k) {
+			t.Errorf("Expected to find key %v",k)
+		}
+		if m2.ValAt(k) != k+1 {
+			t.Errorf("Expected value %v for key %v, got %v",k+1,k,m2.ValAt(k))
+		}
+		if m2.ValAtD(k,12) != k+1 {
+			t.Errorf("Expected value %v for key %v, got %v",k+1,k,m2.ValAt(k))
+		}
+		if me := m2.EntryAt(k); me.Key() != k || me.Val() != k+1 {
+			t.Errorf("Expected map entry (%v, %v), got (%v, %v)",k,k+1,me.Key(),me.Val())
+		}
+	}
+	for _,k := range []int{2,4,6} {
+		if m2.ContainsKey(k) {
+			t.Errorf("Did not expect to find key %v",k)
+		}
+		if v := m2.ValAtD(k,12); v != 12 {
+			t.Errorf("Expected default value key %v, got %v",k,v)
+		}
+		if m2.EntryAt(k) != nil {
+			t.Error("Expected nil for MapEntry")
+		}
+	}
+
+	for i := 0; i < len(bigTestPHashMapSlice); i += 2 {
+		k := bigTestPHashMapSlice[i]
+		v := bigTestPHashMapSlice[i+1]
+		if  !bigTestPHashMap.ContainsKey(k) {
+				t.Errorf("Expected to find key %v (item %v)",k,i)
+				break
+		}
+		if bigTestPHashMap.ValAt(k) != v {
+			t.Errorf("Expected value %v for key %v, got %v",v,k, bigTestPHashMap.ValAt(k))
+		}
+		if bigTestPHashMap.ValAtD(k,12) != v {
+			t.Errorf("Expected value %v for key %v, got %v",v,k, bigTestPHashMap.ValAt(k))
+		}
+
+		if me := bigTestPHashMap.EntryAt(k); me.Key() != k || me.Val() != v {
+			t.Errorf("Expected map entry (%v, %v), got (%v, %v)",k,v,me.Key(),me.Val())
+		}
+	}
+
+	for _,k := range []interface{}{-1,nil} {
+		if bigTestPHashMap.ContainsKey(k) {
+			t.Errorf("Did not expect to find key %v", k)
+		}
+
+		if bigTestPHashMap.EntryAt(k) != nil {
+			t.Error("Expected nil MapEntry for key %v", k)
+		}
+
+		if v := bigTestPHashMap.ValAtD(k,12); v != 12 {
+			t.Errorf("Expected default value for key %v, got %v",k,v)
+		}
+	} 
+}
+
+// interface iseq.PMap
+// AssocM, Without, ConsM
+
+func TestPHashMapAssoc(t *testing.T) {
+	m1 := NewPHashMapFromItems(1,2,3,4,nil,6)
+	m2 := NewPHashMapFromItems(1,2,3,4,5,6)
+
+	// assoc'ing nil
+	if m1.AssocM(nil,6) != m1 {
+		t.Error("Assoc'ing nil with same value should return same PMap")
+	}
+
+	m1a := m1.AssocM(nil,12)
+	if m1a.Count() != m1.Count() {
+		t.Error("Assoc'ing existing key (nil) should not change count")
+	}
+
+	if m1a.ValAt(nil) != 12 {
+		t.Error("Assoc'ing nil -- wrong value found")
+	}
+	for _,k := range []interface{}{1,3} {
+		if m1a.ValAt(k) != m1.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m1.ValAt(k),m1a.ValAt(k))
+		}
+	}
+
+	m2a := m2.AssocM(nil,12)
+	if m2a.Count() != m1.Count() + 1 {
+		t.Error("Assoc'ing new key (nil) should increase count")
+	}
+
+	if m2a.ValAt(nil) != 12 {
+		t.Error("Assoc'ing nil -- wrong value found")
+	}
+	for _,k := range []interface{}{1,3,5} {
+		if m2a.ValAt(k) != m2.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m2.ValAt(k),m2a.ValAt(k))
+		}
+	}
+
+	// assoc'ing a non-nil new key
+
+	m2b := m2.AssocM(7,8)
+	if m2b.Count() != m2.Count() + 1 {
+		t.Error("Assoc'ing new key should increase count")
+	}
+	for _,k := range []interface{}{1,3,5} {
+		if m2b.ValAt(k) != m2.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m2.ValAt(k),m2a.ValAt(k))
+		}
+	}
+	if m2b.ValAt(7) != 8 {
+			t.Error("On key 7, expected 8, got %v",m2a.ValAt(7))
+
+	}
+
+	// assoc'ing a non-nil existing key
+
+	m2b = m2.AssocM(3,8)
+	if m2b.Count() != m2.Count() {
+		t.Error("Assoc'ing existing key should leave count unchanged")
+	}
+	for _,k := range []interface{}{1,5} {
+		if m2b.ValAt(k) != m2.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m2.ValAt(k),m2a.ValAt(k))
+		}
+	}
+	if m2b.ValAt(3) != 8 {
+			t.Error("On key 3, expected 8, got %v",m2a.ValAt(7))
+
+	}
+}
+
+func TestPHashMapWithout(t *testing.T) {
+	m1 := NewPHashMapFromItems(1,2,3,4,nil,6)
+	m2 := NewPHashMapFromItems(1,2,3,4,5,6)
+
+	// without'ing nil
+
+	m1a := m1.Without(nil)
+	if m1a.Count() != m1.Count() - 1 {
+		t.Error("Without'ing existing key (nil) should decrease count")
+	}
+
+	if m1a.ContainsKey(nil)  {
+		t.Error("Without'ing nil -- nil key still present")
+	}
+
+	for _,k := range []interface{}{1,3} {
+		if m1a.ValAt(k) != m1.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m1.ValAt(k),m1a.ValAt(k))
+		}
+	}
+
+	m2a := m2.Without(nil)
+	if m2a.Count() != m1.Count() {
+		t.Error("Without'ing a non-present key (nil) should not change count")
+	}
+
+	if m2a.ContainsKey(nil) {
+		t.Error("Without'ing nil -- key suddenly appeared")
+	}
+	for _,k := range []interface{}{1,3,5} {
+		if m2a.ValAt(k) != m2.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m2.ValAt(k),m2a.ValAt(k))
+		}
+	}
+
+	// without'ing a non-nil non-present key
+
+	m2b := m2.Without(7)
+	if m2b.Count() != m2.Count() {
+		t.Error("Without'ing a non-present key should not change count")
+	}
+	for _,k := range []interface{}{1,3,5} {
+		if m2b.ValAt(k) != m2.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m2.ValAt(k),m2a.ValAt(k))
+		}
+	}
+	if m2b.ContainsKey(7) {
+			t.Error("Without'ing a non-present key, it suddenly appears")
+
+	}
+
+	// assoc'ing a non-nil present key
+
+	m2b = m2.Without(3)
+	if m2b.Count() != m2.Count() -1 {
+		t.Error("Without'ing a present key should decrement count")
+	}
+	for _,k := range []interface{}{1,5} {
+		if m2b.ValAt(k) != m2.ValAt(k) {
+			t.Error("On key %v, expected %v, got %v",k,m2.ValAt(k),m2a.ValAt(k))
+		}
+	}
+	if m2b.ContainsKey(3) {
+			t.Error("Without'ing present key, but it's still there")
+
+	}
+}
+
+// TODO: Finish tests
