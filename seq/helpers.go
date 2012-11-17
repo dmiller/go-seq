@@ -6,6 +6,7 @@ package seq
 
 import (
 	"github.com/dmiller/go-seq/iseq"
+	"github.com/dmiller/go-seq/sequtil"
 )
 
 func moreFromSeq(s iseq.Seq) iseq.Seq {
@@ -14,4 +15,17 @@ func moreFromSeq(s iseq.Seq) iseq.Seq {
 		return CachedEmptyList
 	}
 	return sn
+}
+
+func smartCons(x, coll interface{}) iseq.Seq {
+
+	if coll == nil {
+		return NewPList1(x)
+	}
+
+	if s, ok := coll.(iseq.Seq); ok {
+		return NewCons(x,s)
+	}
+
+	return NewCons(x,sequtil.ConvertToSeq(coll))
 }

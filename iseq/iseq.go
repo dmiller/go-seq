@@ -131,3 +131,16 @@ type Chunk interface {
 	Indexed
 	DropFirst() Chunk
 }
+
+type Comparer interface {
+	Compare(y interface{}) int
+}
+
+type CompareFn func(interface{},interface{}) int
+
+type Sorted interface {
+	Comparator() CompareFn
+	EntryKey(entry interface{}) interface{}
+	SeqA(ascending bool) Seq
+	SeqFrom(key interface{}, ascending bool) Seq
+}
