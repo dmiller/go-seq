@@ -134,7 +134,7 @@ func (m *PTreeMap) AssocM(key interface{}, val interface{}) iseq.PMap {
 func (m *PTreeMap) Without(key interface{}) iseq.PMap {
 	tree, foundNode := m.remove(m.tree,key)
 	if tree == nil {
-		if foundNode.val() == nil {
+		if foundNode == nil {
 			return m
 		}
 		return &PTreeMap{comp: m.comp, AMeta: AMeta{m.meta}}
@@ -542,7 +542,7 @@ func (n *blackTmnode) redden() tmNode {
 }
 
 func (n *blackTmnode) replace(key, val interface{}, left, right tmNode) tmNode { 
-	return makeBlack(n._key,n._val,n._left,n._right)
+	return makeBlack(key,val,left,right)
 }
 
 type redTmnode struct {
@@ -693,3 +693,7 @@ func (t *tmNodeSeq) Equiv(o interface{}) bool {
 	// TODO: revisit Equiv
 	return sequtil.Equals(t,o)
 }
+
+// TODO: Test that keys are ordered when seq'd
+
+// TODO: Finish tests
