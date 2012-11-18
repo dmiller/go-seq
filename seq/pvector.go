@@ -5,9 +5,9 @@
 package seq
 
 import (
-	"hash"
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
+	"hash"
 )
 
 // PVector implements a persistent vector via a specialized form of array-mapped hash trie.

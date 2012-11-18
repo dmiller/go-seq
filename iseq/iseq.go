@@ -136,7 +136,7 @@ type Comparer interface {
 	Compare(y interface{}) int
 }
 
-type CompareFn func(interface{},interface{}) int
+type CompareFn func(interface{}, interface{}) int
 
 type Sorted interface {
 	Comparator() CompareFn

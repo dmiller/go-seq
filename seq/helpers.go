@@ -24,8 +24,8 @@ func smartCons(x, coll interface{}) iseq.Seq {
 	}
 
 	if s, ok := coll.(iseq.Seq); ok {
-		return NewCons(x,s)
+		return NewCons(x, s)
 	}
 
-	return NewCons(x,sequtil.ConvertToSeq(coll))
+	return NewCons(x, sequtil.ConvertToSeq(coll))
 }

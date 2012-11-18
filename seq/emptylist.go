@@ -5,9 +5,9 @@
 package seq
 
 import (
-	"hash"
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
+	"hash"
 )
 
 // EmptyList implements an empty iseq.PList

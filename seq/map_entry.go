@@ -4,7 +4,7 @@
 
 package seq
 
-import ( 
+import (
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
 	"hash"
@@ -24,8 +24,8 @@ func (me MapEntry) Val() interface{} {
 }
 
 func (me MapEntry) Equals(o interface{}) bool {
-	if you,ok := o.(iseq.MapEntry); ok {
-		return sequtil.Equals(me.key,you.Key()) && sequtil.Equals(me.val,you.Val())
+	if you, ok := o.(iseq.MapEntry); ok {
+		return sequtil.Equals(me.key, you.Key()) && sequtil.Equals(me.val, you.Val())
 	}
 	return false
 }
@@ -35,5 +35,5 @@ func (me MapEntry) Hash() uint32 {
 }
 
 func (me MapEntry) AddHash(h hash.Hash) {
-	sequtil.AddHash(h,me.key)
+	sequtil.AddHash(h, me.key)
 }

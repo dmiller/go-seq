@@ -7,9 +7,9 @@ package sequtil
 
 import (
 	"encoding/binary"
+	"github.com/dmiller/go-seq/iseq"
 	"hash"
 	"hash/fnv"
-	"github.com/dmiller/go-seq/iseq"
 	//"fmt"
 	"math"
 	"reflect"
@@ -49,12 +49,12 @@ func MapEquals(m1 iseq.PMap, obj interface{}) bool {
 		return true
 	}
 
-	if _,ok := obj.(map[interface{}]interface{}); ok {
+	if _, ok := obj.(map[interface{}]interface{}); ok {
 		// TODO: figure out how to handle go maps
 		return false
 	}
 
-	if m2,ok := obj.(iseq.PMap); ok {
+	if m2, ok := obj.(iseq.PMap); ok {
 		if m1.Count() != m2.Count() {
 			return false
 		}
@@ -62,7 +62,7 @@ func MapEquals(m1 iseq.PMap, obj interface{}) bool {
 		for s := m1.Seq(); s != nil; s = s.Next() {
 			me := s.First().(iseq.MapEntry)
 			found := m2.ContainsKey(me.Key())
-			if ! found || !Equals(me.Val(),m2.ValAt(me.Key())) {
+			if !found || !Equals(me.Val(), m2.ValAt(me.Key())) {
 				return false
 			}
 		}
@@ -150,7 +150,6 @@ func SeqCount(s0 iseq.Seq) int {
 	return i
 }
 
-
 var (
 	zeroBytes = make([]byte, 4)
 )
@@ -173,18 +172,17 @@ func AddHashSeq(h hash.Hash, seq iseq.Seq) {
 
 func HashMap(m iseq.PMap) uint32 {
 	h := fnv.New32()
-	AddHashMap(h,m)
+	AddHashMap(h, m)
 	return h.Sum32()
 }
 
 func AddHashMap(h hash.Hash, m iseq.PMap) {
 	for s := m.Seq(); s != nil; s = s.Next() {
 		me := s.First().(iseq.MapEntry)
-		AddHash(h,me.Key())
-		AddHash(h,me.Val())
+		AddHash(h, me.Key())
+		AddHash(h, me.Val())
 	}
 }
-
 
 func HashUint64(v uint64) uint32 {
 	h := fnv.New32()
@@ -280,20 +278,20 @@ func Hasheq(o interface{}) uint32 {
 
 func MapCons(m iseq.PMap, o interface{}) iseq.PMap {
 	if me, ok := o.(iseq.MapEntry); ok {
-		return m.AssocM(me.Key(),me.Val())
+		return m.AssocM(me.Key(), me.Val())
 	}
 
 	if v, ok := o.(iseq.PVector); ok {
 		if v.Count() != 2 {
 			panic("Vector arg to map cons must be a pair")
 		}
-		return m.AssocM(v.Nth(0),v.Nth(1))
+		return m.AssocM(v.Nth(0), v.Nth(1))
 	}
-	
+
 	var ret iseq.PMap
 	for s := ConvertToSeq(o); s != nil; s = s.Next() {
 		me := s.First().(iseq.MapEntry)
-		ret = ret.AssocM(me.Key(),me.Val())
+		ret = ret.AssocM(me.Key(), me.Val())
 	}
 	return ret
 }
@@ -321,17 +319,16 @@ func BitCount(x int32) int {
 	return int(((x * 0x01010101) >> 24))
 }
 
-
 // A variant of the above that avoids multiplying
 // This algo is in a lot of places.
 // See, for example, http://aggregate.org/MAGIC/#Population%20Count%20(Ones%20Count)
 func BitCountU(x uint32) int {
-	x = x- ((x >> 1) & 0x55555555);
-	x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
-	x = (((x >> 4) + x) & 0x0f0f0f0f);
-	x = x + (x >> 8);
-	x = x +(x >> 16);
-	return int(x & 0x0000003f);
+	x = x - ((x >> 1) & 0x55555555)
+	x = (((x >> 2) & 0x33333333) + (x & 0x33333333))
+	x = (((x >> 4) + x) & 0x0f0f0f0f)
+	x = x + (x >> 8)
+	x = x + (x >> 16)
+	return int(x & 0x0000003f)
 }
 
 func DefaultCompareFn(k1 interface{}, k2 interface{}) int {
@@ -342,25 +339,25 @@ func DefaultCompareFn(k1 interface{}, k2 interface{}) int {
 		if k2 == nil {
 			return 1
 		}
-		if c,ok := k1.(iseq.Comparer); ok {
+		if c, ok := k1.(iseq.Comparer); ok {
 			return c.Compare(k2)
 		}
-		if s,ok := k1.(string); ok {
-			return CompareString(s,k2)
+		if s, ok := k1.(string); ok {
+			return CompareString(s, k2)
 		}
 		if IsComparableNumeric(k1) {
-			return CompareComparableNumeric(k1,k2)
+			return CompareComparableNumeric(k1, k2)
 		}
 		panic("Can't compare")
 	}
-	return -1  
+	return -1
 }
 
 func IsComparableNumeric(v interface{}) bool {
 
 	switch v.(type) {
-	case bool, int, int8, int32, int64, 
-		uint, uint8, uint32, uint64, 
+	case bool, int, int8, int32, int64,
+		uint, uint8, uint32, uint64,
 		float32, float64:
 
 		return true
@@ -382,18 +379,18 @@ func CompareString(s string, x interface{}) int {
 	return -1 // don't feel like panicking.
 }
 
-func CompareComparableNumeric(x1 interface{}, x2 interface{} ) int {
+func CompareComparableNumeric(x1 interface{}, x2 interface{}) int {
 	// n1 should be numeric
 	switch x1 := x1.(type) {
 	case bool, int, int8, int32, int64:
 		n1 := reflect.ValueOf(x1).Int()
-		return compareNumericInt(n1,x2)
+		return compareNumericInt(n1, x2)
 	case uint, uint8, uint32, uint64:
 		n1 := reflect.ValueOf(x1).Uint()
-		return compareNumericUint(n1,x2)
+		return compareNumericUint(n1, x2)
 	case float32, float64:
 		n1 := reflect.ValueOf(x1).Float()
-		return compareNumericFloat(n1,x2)
+		return compareNumericFloat(n1, x2)
 	}
 	panic("Expect first arg to be numeric")
 }
@@ -407,7 +404,7 @@ func compareNumericInt(n1 int64, x2 interface{}) int {
 		}
 		if n1 > n2 {
 			return 1
-		} 
+		}
 		return 0
 
 	case uint, uint8, uint32, uint64:
@@ -435,7 +432,7 @@ func compareNumericInt(n1 int64, x2 interface{}) int {
 		}
 		return 0
 	}
-	return -1  // what else, other than panic?
+	return -1 // what else, other than panic?
 }
 
 func compareNumericUint(n1 uint64, x2 interface{}) int {
@@ -451,7 +448,7 @@ func compareNumericUint(n1 uint64, x2 interface{}) int {
 		}
 		if n1 > un2 {
 			return 1
-		} 
+		}
 		return 0
 
 	case uint, uint8, uint32, uint64:
@@ -475,7 +472,7 @@ func compareNumericUint(n1 uint64, x2 interface{}) int {
 		}
 		return 0
 	}
-	return -1  // what else, other than panic?
+	return -1 // what else, other than panic?
 }
 
 func compareNumericFloat(n1 float64, x2 interface{}) int {
@@ -488,7 +485,7 @@ func compareNumericFloat(n1 float64, x2 interface{}) int {
 	case float32, float64:
 		n2 = reflect.ValueOf(x2).Float()
 	default:
-		return -1  // what else, other than panic?
+		return -1 // what else, other than panic?
 	}
 	if n1 < n2 {
 		return -1

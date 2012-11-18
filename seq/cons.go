@@ -5,9 +5,9 @@
 package seq
 
 import (
-	"hash"
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
+	"hash"
 )
 
 // Cons implements an immutable cons cell (think CAR/CDR, for the old-timers)
