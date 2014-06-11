@@ -64,7 +64,7 @@ func HashString(input string) uint32 {
 
 	// step through the string 4 bytes at a time
 	for i := 3; i < len; i += 4 {
-		key := uint32(input[i-3] | input[i-2]<<8 | input[i-1]<<16 | input[i]<<24)
+		key := uint32(input[i-3]) | uint32(input[i-2]<<8) | uint32(input[i-1]<<16) | uint32(input[i]<<24)
 		key = mixKey(key)
 		hash = mixHash(hash, key)
 	}
@@ -77,9 +77,9 @@ func HashString(input string) uint32 {
 		case 1:
 			key = uint32(input[len-1])
 		case 2:
-			key = uint32(input[len-2] | input[len-1]<<8)
+			key = uint32(input[len-2]) | uint32(input[len-1]<<8)
 		case 3:
-			key = uint32(input[len-3] | input[len-2]<<8 | input[len-1]<<16)
+			key = uint32(input[len-3]) | uint32(input[len-2]<<8) | uint32(input[len-1]<<16)
 		}
 		key = mixKey(key)
 		hash = mixHash(hash, key)
@@ -125,5 +125,4 @@ func finalizeCollHash(hash uint32, count int32) uint32 {
 
 func rotateLeft(x uint32, n uint32) uint32 {
 	return (x << n) | (x >> (32 - n))
-
 }
