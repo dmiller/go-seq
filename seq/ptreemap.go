@@ -1,4 +1,4 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
-	"hash"
 )
 
 // PTreeMap implements a persistent Red-Black tree.
 // Instances of this struct are constant values.
 // See Okasaki, Kahrs, Larsen, et al
-
 type PTreeMap struct {
 	comp  iseq.CompareFn
 	tree  tmNode
@@ -73,9 +71,9 @@ func NewPTreeMapFromItemsC(comp iseq.CompareFn, items ...interface{}) *PTreeMap 
 }
 
 // PTreeMap needs to implement the following iseq interfaces:
-//		Obj Meta Seqable PCollection Lookup Associative Counted PMap Reversible Sorted?
+//		Meta MetaW Seqable PCollection Lookup Associative Counted PMap Reversible Sorted?
 //  Are we going to do EditableCollection?
-//  Also, Equatable and Hashable
+//  Also, Equivable and Hashable
 //
 // interface Meta is covered by the AMeta embedding
 // TODO: IEditableCollection
@@ -153,10 +151,6 @@ func (m *PTreeMap) Empty() iseq.PCollection {
 	return &PTreeMap{comp: m.comp, AMeta: AMeta{m.meta}}
 }
 
-func (m *PTreeMap) Equiv(o interface{}) bool {
-	return sequtil.Equiv(m, o)
-}
-
 func (m *PTreeMap) Count1() int {
 	return m.count
 }
@@ -229,10 +223,16 @@ func (m *PTreeMap) SeqFrom(key interface{}, ascending bool) iseq.Seq {
 	return nil
 }
 
-// interfaces Equatable, Hashable
+// interfaces Equivable, Hashable
 
 func (p *PTreeMap) Equals(o interface{}) bool {
 	return sequtil.MapEquals(p, o)
+}
+
+// TODO: figure out which we want!
+
+func (m *PTreeMap) Equiv(o interface{}) bool {
+	return sequtil.Equiv(m, o)
 }
 
 func (p *PTreeMap) Hash() uint32 {
@@ -240,10 +240,6 @@ func (p *PTreeMap) Hash() uint32 {
 		p.hash = sequtil.HashMap(p)
 	}
 	return p.hash
-}
-
-func (p *PTreeMap) AddHash(h hash.Hash) {
-	sequtil.AddHashMap(h, p)
 }
 
 // tree operations
@@ -621,7 +617,7 @@ type tmNodeSeq struct {
 	AMeta
 }
 
-// interface iseq.Obj
+// interface iseq.MetaW
 
 func (t *tmNodeSeq) WithMeta(meta iseq.PMap) iseq.Obj {
 	return &tmNodeSeq{AMeta: AMeta{meta}, stack: t.stack, asc: t.asc, cnt: t.cnt}
@@ -655,7 +651,7 @@ func (t *tmNodeSeq) More() iseq.Seq {
 	return moreFromSeq(t)
 }
 
-func (t *tmNodeSeq) SCons(o interface{}) iseq.Seq {
+func (t *tmNodeSeq) ConsS(o interface{}) iseq.Seq {
 	return NewCons(o, t)
 }
 

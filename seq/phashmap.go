@@ -1,4 +1,4 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,9 +6,9 @@ package seq
 
 import (
 	"fmt"
+
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
-	"hash"
 )
 
 // PHashMap is a persistent rendition of Phil Bagwell's Hash Array Mapped Trie.
@@ -64,7 +64,7 @@ func NewPHashMapFromSlice(s []interface{}) *PHashMap {
 		ret = ret.AssocM(s[i], s[i+1]).(*PHashMap)
 		// if checkDup && ret.Count1() != i+1 {
 		// 	panic(fmt.Sprintf("Duplicate key: %v",s[i]))
-		// } 
+		// }
 	}
 	return ret
 }
@@ -74,14 +74,14 @@ func NewPHashMapFromItems(items ...interface{}) *PHashMap {
 }
 
 // PHashMap needs to implement the following iseq interfaces:
-//		Obj Meta Seqable PCollection Lookup Associative Counted PMap
+//	Meta MetaW Seqable PCollection Lookup Associative Counted PMap
 //  Are we going to do EditableCollection?
-//  Also, Equatable and Hashable
+//  Also, Equivable and Hashable
 //
 // interface Meta is covered by the AMeta embedding
 // TODO: IEditableCollection
 
-// interface iseq.Obj
+// interface iseq.MetaW
 
 func (m *PHashMap) WithMeta(meta iseq.PMap) iseq.Obj {
 	return &PHashMap{AMeta: AMeta{meta},
@@ -222,11 +222,6 @@ func (m *PHashMap) Empty() iseq.PCollection {
 	return EmptyPHashMap.WithMeta(m.Meta()).(iseq.PCollection)
 }
 
-// TODO: rethink Equiv
-func (m *PHashMap) Equiv(o interface{}) bool {
-	return sequtil.Equiv(m, o)
-}
-
 func (m *PHashMap) Seq() iseq.Seq {
 	var s iseq.Seq
 	if m.root != nil {
@@ -238,10 +233,10 @@ func (m *PHashMap) Seq() iseq.Seq {
 	return s
 }
 
-// interfaces Equatable, Hashable
+// interfaces Equivable, Hashable
 
-func (p *PHashMap) Equals(o interface{}) bool {
-	return sequtil.MapEquals(p, o)
+func (m *PHashMap) Equiv(o interface{}) bool {
+	return sequtil.MapEquiv(m, o)
 }
 
 func (p *PHashMap) Hash() uint32 {
@@ -249,10 +244,6 @@ func (p *PHashMap) Hash() uint32 {
 		p.hash = sequtil.HashMap(p)
 	}
 	return p.hash
-}
-
-func (p *PHashMap) AddHash(h hash.Hash) {
-	sequtil.AddHashMap(h, p)
 }
 
 // Nodes in the trie
@@ -489,7 +480,7 @@ type bitmapIndexedHmnode struct {
 var emptyBitmapIndexedHmnode = &bitmapIndexedHmnode{}
 
 func (b *bitmapIndexedHmnode) index(bit uint32) int {
-	return sequtil.BitCountU(b.bitmap & (bit - 1))
+	return sequtil.BitCountU32(b.bitmap & (bit - 1))
 }
 
 func (b *bitmapIndexedHmnode) assoc(shift uint32, hash uint32, key interface{}, val interface{}) hmnode {
@@ -523,7 +514,7 @@ func (b *bitmapIndexedHmnode) assoc2(shift uint32, hash uint32, key interface{},
 		return &bitmapIndexedHmnode{b.bitmap, cloneAndSetObjectSlice2(b.array, 2*idx, nil, 2*idx+1, createNode(shift+5, keyOrNil, valOrNode, hash, key, val))}, true
 	}
 
-	n := sequtil.BitCountU(b.bitmap)
+	n := sequtil.BitCountU32(b.bitmap)
 	if n >= 16 {
 		nodes := make([]hmnode, 32)
 		jdx := imask(hash, shift)
@@ -589,7 +580,7 @@ func (b *bitmapIndexedHmnode) find(shift uint32, hash uint32, key interface{}) i
 		return nil
 	}
 
-	// TODO: Factor out the following three lines -- repeated 
+	// TODO: Factor out the following three lines -- repeated
 	idx := b.index(bit)
 	keyOrNil := b.array[2*idx]
 	valOrNode := b.array[2*idx+1]
@@ -608,7 +599,7 @@ func (b *bitmapIndexedHmnode) findD(shift uint32, hash uint32, key interface{}, 
 		return notFound
 	}
 
-	// TODO: Factor out the following three lines -- repeated 
+	// TODO: Factor out the following three lines -- repeated
 	idx := b.index(bit)
 	keyOrNil := b.array[2*idx]
 	valOrNode := b.array[2*idx+1]
@@ -749,7 +740,7 @@ func createHmnodeSeq3(array []interface{}, i int, s iseq.Seq) *hmnodeSeq {
 }
 
 // hmnodeSeq must implement the following iseq interfaces:
-//  Obj, Meta, Seqable, PCollection, Seq
+//  Meta, MetaW, Seqable, PCollection, Seq
 
 // interface iseq.Obj
 func (h *hmnodeSeq) WithMeta(meta iseq.PMap) iseq.Obj {
@@ -776,6 +767,7 @@ func (h *hmnodeSeq) Empty() iseq.PCollection {
 	return CachedEmptyList
 }
 
+// TODO: Check to make sure not a loop
 func (h *hmnodeSeq) Equiv(o interface{}) bool {
 	return sequtil.Equiv(h, o)
 }
@@ -802,10 +794,10 @@ func (h *hmnodeSeq) More() iseq.Seq {
 
 }
 
-func (h *hmnodeSeq) SCons(o interface{}) iseq.Seq {
+func (h *hmnodeSeq) ConsS(o interface{}) iseq.Seq {
 	return NewCons(o, h)
 }
 
 func Hash(k interface{}) uint32 {
-	return sequtil.Hasheq(k)
+	return sequtil.Hash(k)
 }

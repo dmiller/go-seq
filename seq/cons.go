@@ -1,4 +1,4 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,12 +7,13 @@ package seq
 import (
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
-	"hash"
 )
 
-// Cons implements an immutable cons cell (think CAR/CDR, for the old-timers)
+// Cons implements an immutable cons cell
+// (Think CAR/CDR, for the old-timers)
 //
-// Zero value is (nil) (list of one element, nil), nil metadata, hash not cached.
+// Zero value is (nil) (list of one element, namely, nil),
+// nil metadata, hash not cached.
 // We use 0 as an indicator that hash is not cached.
 type Cons struct {
 	first interface{}
@@ -21,14 +22,13 @@ type Cons struct {
 	hash uint32
 }
 
-// Cons needs to implement the iseq interfaces: 
-//    Obj, Meta, Seq, Sequential, PCollection, Seqable, IHashEq
-//   Also, Equatable and Hashable
+// Cons needs to implement the iseq interfaces:
+//   Meta, MetaW, Seq, Sequential, PCollection, Seqable
+//   Also, Equivable and Hashable
 //
-// I'm not sure yet if I'll be doing IHashEq
-// Also, Sequential is a marker interface that I haven't figured out how to translate
+// Sequential is a marker interface that I haven't figured out how to translate
 //    because I can't figure out a significant use of it in the Clojure code
-
+//
 // interface Meta is covered by the AMeta embedding
 
 // c-tors
@@ -38,11 +38,10 @@ func NewCons(first interface{}, more iseq.Seq) *Cons {
 }
 
 func NewConsM(meta iseq.PMap, first interface{}, more iseq.Seq) *Cons {
-	nc := &Cons{AMeta: AMeta{meta}, first: first, more: more}
-	return nc
+	return &Cons{AMeta: AMeta{meta}, first: first, more: more}
 }
 
-// interface iseq.Obj
+// interface iseq.MetaW
 
 func (c *Cons) WithMeta(meta iseq.PMap) iseq.Obj {
 	return NewConsM(meta, c.first, c.more)
@@ -61,24 +60,12 @@ func (c *Cons) Count() int {
 }
 
 func (c *Cons) Cons(o interface{}) iseq.PCollection {
-	return c.SCons(o)
+	return c.ConsS(o)
 }
 
 func (c *Cons) Empty() iseq.PCollection {
+	// A Cons cannot be empty, so we need to return something else.
 	return CachedEmptyList
-}
-
-func (c *Cons) Equiv(o interface{}) bool {
-	if c == o {
-		return true
-	}
-
-	if os, ok := o.(iseq.Seqable); ok {
-		return sequtil.SeqEquiv(c, os.Seq())
-	}
-
-	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
-	return false
 }
 
 // interface iseq.Seq
@@ -99,13 +86,13 @@ func (c *Cons) More() iseq.Seq {
 	return c.more
 }
 
-func (c *Cons) SCons(o interface{}) iseq.Seq {
+func (c *Cons) ConsS(o interface{}) iseq.Seq {
 	return &Cons{first: o, more: c}
 }
 
-// interfaces Equatable, Hashable
+// interfaces Equivable, Hashable
 
-func (c *Cons) Equals(o interface{}) bool {
+func (c *Cons) Equiv(o interface{}) bool {
 	if c == o {
 		return true
 	}
@@ -124,12 +111,4 @@ func (c *Cons) Hash() uint32 {
 	}
 
 	return c.hash
-}
-
-func (c *Cons) AddHash(h hash.Hash) {
-	if c.hash == 0 {
-		c.hash = sequtil.HashSeq(c)
-	}
-
-	sequtil.AddHashUint64(h, uint64(c.hash))
 }

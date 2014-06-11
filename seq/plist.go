@@ -1,4 +1,4 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,12 +7,11 @@ package seq
 import (
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
-	"hash"
 )
 
 // PList implements a persistent immutable list
 //
-// Zero value is not valid!
+// TODO: FIX: Zero value is not valid!
 // We use 0 as an indicator that hash is not cached.
 type PList struct {
 	first interface{}
@@ -22,11 +21,10 @@ type PList struct {
 	hash uint32
 }
 
-// PList needs to implement the iseq interfaces: 
-//    Obj, Meta, Seq, Sequential, PList (= PCollection + PStack), Seqable, Counted, IHashEq
-//   Also, Equatable and Hashable
+// PList needs to implement the iseq interfaces:
+//   Meta, MetaW, Seq, Sequential, PList (= PCollection + PStack), Seqable, Counted
+//   Also, Equivable and Hashable
 //
-// I'm not sure yet if I'll be doing IHashEq
 // Also, Sequential is a marker interface that I haven't figured out how to translate
 //    because I can't figure out a significant use of it in the Clojure code
 
@@ -56,7 +54,7 @@ func NewPListFromSlice(init []interface{}) *PList {
 	return ret
 }
 
-// interface iseq.Obj
+// interface iseq.MetaW
 
 func (p *PList) WithMeta(meta iseq.PMap) iseq.Obj {
 	return NewPListMeta1N(meta, p.first, p.rest, p.count)
@@ -75,24 +73,11 @@ func (p *PList) Count() int {
 }
 
 func (p *PList) Cons(o interface{}) iseq.PCollection {
-	return p.SCons(o)
+	return p.ConsS(o)
 }
 
 func (p *PList) Empty() iseq.PCollection {
 	return CachedEmptyList.WithMeta(p.meta).(iseq.PCollection)
-}
-
-func (p *PList) Equiv(o interface{}) bool {
-	if p == o {
-		return true
-	}
-
-	if os, ok := o.(iseq.Seqable); ok {
-		return sequtil.SeqEquiv(p, os.Seq())
-	}
-
-	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
-	return false
 }
 
 // interface iseq.Seq
@@ -116,7 +101,7 @@ func (p *PList) More() iseq.Seq {
 	return s
 }
 
-func (p *PList) SCons(o interface{}) iseq.Seq {
+func (p *PList) ConsS(o interface{}) iseq.Seq {
 	return NewPListMeta1N(p.meta, o, p, p.count+1)
 }
 
@@ -139,18 +124,17 @@ func (p *PList) Pop() iseq.PStack {
 	return p.rest
 }
 
-// interfaces Equatable, Hashable
+// interfaces Equivable, Hashable
 
-func (p *PList) Equals(o interface{}) bool {
+func (p *PList) Equiv(o interface{}) bool {
 	if p == o {
 		return true
 	}
 
 	if os, ok := o.(iseq.Seqable); ok {
-		return sequtil.SeqEquals(p, os.Seq())
+		return sequtil.SeqEquiv(p, os.Seq())
 	}
 
-	// TODO: handle built-in 'sequable' things such as arrays, slices, strings
 	return false
 }
 
@@ -160,14 +144,6 @@ func (p *PList) Hash() uint32 {
 	}
 
 	return p.hash
-}
-
-func (p *PList) AddHash(h hash.Hash) {
-	if p.hash == 0 {
-		p.hash = sequtil.HashSeq(p)
-	}
-
-	sequtil.AddHashUint64(h, uint64(p.hash))
 }
 
 /*

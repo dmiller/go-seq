@@ -1,13 +1,13 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package seq
 
 import (
+	"errors"
 	"github.com/dmiller/go-seq/iseq"
 	"github.com/dmiller/go-seq/sequtil"
-	"hash"
 )
 
 // PVector implements a persistent vector via a specialized form of array-mapped hash trie.
@@ -62,13 +62,13 @@ func NewPVectorFromItems(items ...interface{}) *PVector {
 }
 
 //  PVector needs to implement the following iseq interfaces:
-//        Obj Meta Seqable PCollection Lookup Associative PStack PVector Counted Reversible Indexed
+//        Meta MetaW Seqable PCollection Lookup Associative PStack PVector Counted Reversible Indexed
 //  Are we going to do EditableCollection?
-//  Also, Equatable and Hashable
+//  Also, Equivable and Hashable
 //
 // interface Meta is covered by the AMeta embedding
 
-// interface Obj
+// interface MetaW
 
 func (v *PVector) WithMeta(meta iseq.PMap) iseq.Obj {
 	return &PVector{AMeta: AMeta{meta}, cnt: v.cnt, shift: v.shift, root: v.root, tail: v.tail}
@@ -104,11 +104,6 @@ func (v *PVector) Empty() iseq.PCollection {
 	return CachedEmptyList.WithMeta(v.Meta()).(iseq.PCollection)
 }
 
-func (v *PVector) Equiv(o interface{}) bool {
-	// TODO: Look more closely at Equiv/Equals
-	return sequtil.Equiv(v, o)
-}
-
 // interface Counted
 
 func (v *PVector) Count1() int {
@@ -127,6 +122,13 @@ func (v *PVector) NthD(i int, notFound interface{}) interface{} {
 		return v.Nth(i)
 	}
 	return notFound
+}
+
+func (v *PVector) NthE(i int, notFound interface{}) (interface{}, error) {
+	if i >= 0 && i < v.cnt {
+		return v.Nth(i), nil
+	}
+	return nil, errors.New("Index out of bounds in PVector")
 }
 
 // interface Lookup
@@ -357,7 +359,14 @@ func (v *PVector) tailoff() int {
 	return ((v.cnt - 1) >> baseShift) << baseShift
 }
 
-// interfaces Equatable, Hashable
+// interfaces Equivable, Hashable
+
+// TODO: FIX THIS!
+
+func (v *PVector) Equiv(o interface{}) bool {
+	// TODO: Look more closely at Equiv/Equals
+	return sequtil.Equiv(v, o)
+}
 
 func (p *PVector) Equals(o interface{}) bool {
 	if p == o {
@@ -402,14 +411,6 @@ func (p *PVector) Hash() uint32 {
 	}
 
 	return p.hash
-}
-
-func (p *PVector) AddHash(h hash.Hash) {
-	if p.hash == 0 {
-		p.hash = sequtil.HashSeq(p.Seq())
-	}
-
-	sequtil.AddHashUint64(h, uint64(p.hash))
 }
 
 /*

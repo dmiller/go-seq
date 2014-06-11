@@ -1,4 +1,4 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -19,8 +19,8 @@ type chunkedSeq struct {
 }
 
 //  chunkedSeq needs to implement the following iseq interfaces:
-//        Obj Meta Seq IPCollection Sequential ChunkedSeq
-//  Also, Equatable and Hashable
+//        Meta MetaW Seq IPCollection Sequential ChunkedSeq
+//  Also, Equivable and Hashable
 
 // c-tors
 
@@ -36,7 +36,7 @@ func newChunkedSeqRaw(v *PVector, node []interface{}, i int, offset int) *chunke
 	return newChunkedSeqM(nil, v, node, i, offset)
 }
 
-// interface Obj
+// interface MetaW
 
 func (c *chunkedSeq) WithMeta(meta iseq.PMap) iseq.Obj {
 	if meta == c.meta {
@@ -108,6 +108,6 @@ func (c *chunkedSeq) More() iseq.Seq {
 	return s
 }
 
-func (c *chunkedSeq) SCons(o interface{}) iseq.Seq {
+func (c *chunkedSeq) ConsS(o interface{}) iseq.Seq {
 	return NewCons(o, c)
 }

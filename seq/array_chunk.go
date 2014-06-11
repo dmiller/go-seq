@@ -1,10 +1,11 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package seq
 
 import (
+	"errors"
 	"github.com/dmiller/go-seq/iseq"
 )
 
@@ -44,6 +45,13 @@ func (a *arrayChunk) NthD(i int, notFound interface{}) interface{} {
 		return a.Nth(i)
 	}
 	return notFound
+}
+
+func (a *arrayChunk) NthE(i int, notFound interface{}) (interface{}, error) {
+	if i >= 0 && i < a.Count1() {
+		return a.Nth(i), nil
+	}
+	return notFound, errors.New("Index out of bounds for chunk")
 }
 
 // interface Chunk
