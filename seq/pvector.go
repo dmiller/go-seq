@@ -70,7 +70,7 @@ func NewPVectorFromItems(items ...interface{}) *PVector {
 
 // interface MetaW
 
-func (v *PVector) WithMeta(meta iseq.PMap) iseq.Obj {
+func (v *PVector) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return &PVector{AMeta: AMeta{meta}, cnt: v.cnt, shift: v.shift, root: v.root, tail: v.tail}
 }
 
@@ -124,7 +124,7 @@ func (v *PVector) NthD(i int, notFound interface{}) interface{} {
 	return notFound
 }
 
-func (v *PVector) NthE(i int, notFound interface{}) (interface{}, error) {
+func (v *PVector) NthE(i int) (interface{}, error) {
 	if i >= 0 && i < v.cnt {
 		return v.Nth(i), nil
 	}
@@ -379,7 +379,7 @@ func (p *PVector) Equals(o interface{}) bool {
 		}
 
 		for i := 0; i < p.Count1(); i++ {
-			if !sequtil.Equals(p.Nth(i), ov.Nth(i)) {
+			if !sequtil.Equiv(p.Nth(i), ov.Nth(i)) {
 				return false
 			}
 		}
@@ -390,7 +390,7 @@ func (p *PVector) Equals(o interface{}) bool {
 	if os, ok := o.(iseq.Seqable); ok {
 		s := os.Seq()
 		for i := 0; i < p.Count1(); i, s = i+1, s.Next() {
-			if s == nil || !sequtil.Equals(p.Nth(i), s.First()) {
+			if s == nil || !sequtil.Equiv(p.Nth(i), s.First()) {
 				return false
 			}
 		}

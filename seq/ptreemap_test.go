@@ -14,8 +14,8 @@ import (
 func TestPTreeMapImplementInterfaces(t *testing.T) {
 	var c interface{} = NewPTreeMapFromItems("abc", "def")
 
-	if _, ok := c.(iseq.Obj); !ok {
-		t.Error("PTreeMap must implement Obj")
+	if _, ok := c.(iseq.MetaW); !ok {
+		t.Error("PTreeMap must implement MetaW")
 	}
 
 	if _, ok := c.(iseq.Meta); !ok {
@@ -54,7 +54,7 @@ func TestPTreeMapImplementInterfaces(t *testing.T) {
 		t.Error("PTreeMap must implement Sorted")
 	}
 
-	if _, ok := c.(iseq.Equatable); !ok {
+	if _, ok := c.(iseq.Equivable); !ok {
 		t.Error("PTreeMap must implement Equatable")
 	}
 
@@ -136,7 +136,7 @@ func TestPTreeMapGoesBig(t *testing.T) {
 	}
 }
 
-// interface iseq.Obj
+// interface iseq.MetaW
 
 // TODO: test WithMeta once we have PMap
 

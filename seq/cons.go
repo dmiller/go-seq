@@ -43,7 +43,7 @@ func NewConsM(meta iseq.PMap, first interface{}, more iseq.Seq) *Cons {
 
 // interface iseq.MetaW
 
-func (c *Cons) WithMeta(meta iseq.PMap) iseq.Obj {
+func (c *Cons) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return NewConsM(meta, c.first, c.more)
 }
 
@@ -98,7 +98,7 @@ func (c *Cons) Equiv(o interface{}) bool {
 	}
 
 	if os, ok := o.(iseq.Seqable); ok {
-		return sequtil.SeqEquals(c, os.Seq())
+		return sequtil.SeqEquiv(c, os.Seq())
 	}
 
 	// TODO: handle built-in 'sequable' things such as arrays, slices, strings

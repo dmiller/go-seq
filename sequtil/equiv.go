@@ -8,7 +8,6 @@ import (
 	"github.com/dmiller/go-seq/iseq"
 )
 
-
 // Equiv returns true if the objects are 'equivalent'.
 // Two == objects are equivalent.
 // Else, if either is iseq.Equivable, we default to that interface.
@@ -19,8 +18,7 @@ func Equiv(o1 interface{}, o2 interface{}) bool {
 	}
 
 	// TODO: make sure we have handled interface nils
-	if o1 == nil || o2 == nil
-	{
+	if o1 == nil || o2 == nil {
 		return false
 	}
 
@@ -66,7 +64,6 @@ func MapEquiv(m1 iseq.PMap, obj interface{}) bool {
 	return false
 }
 
-
 //  Returns true if the sequences are element-by-element equivalent.
 func SeqEquiv(s1 iseq.Seq, s2 iseq.Seq) bool {
 	if s1 == s2 {
@@ -84,4 +81,3 @@ func SeqEquiv(s1 iseq.Seq, s2 iseq.Seq) bool {
 
 	return iter2 == nil
 }
-

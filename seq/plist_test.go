@@ -77,8 +77,8 @@ func TestNewPlist1N(t *testing.T) {
 func TestPListImplementInterfaces(t *testing.T) {
 	var c interface{} = NewPList1("abc")
 
-	if _, ok := c.(iseq.Obj); !ok {
-		t.Error("PList must implement Obj")
+	if _, ok := c.(iseq.MetaW); !ok {
+		t.Error("PList must implement MetaW")
 	}
 
 	if _, ok := c.(iseq.Meta); !ok {
@@ -105,7 +105,7 @@ func TestPListImplementInterfaces(t *testing.T) {
 		t.Error("PList must implement Counted")
 	}
 
-	if _, ok := c.(iseq.Equatable); !ok {
+	if _, ok := c.(iseq.Equivable); !ok {
 		t.Error("PList must implement Equatable")
 	}
 
@@ -148,7 +148,7 @@ func TestPListSeq(t *testing.T) {
 
 func TestPListCons(t *testing.T) {
 	c1 := NewPList1("abc")
-	c2 := c1.SCons("def")
+	c2 := c1.ConsS("def")
 
 	if c2.First() != "def" {
 		t.Error("Cons has a bad first element")

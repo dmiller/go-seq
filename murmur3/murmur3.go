@@ -35,9 +35,9 @@ func HashUInt32(input uint32) uint32 {
 		return 0
 	}
 
-	key := mixKey(input)
-	hash := mixHash(seed, key)
-	return finalize(hash, 4)
+	key := MixKey(input)
+	hash := MixHash(seed, key)
+	return Finalize(hash, 4)
 }
 
 func HashUInt64(input uint64) uint32 {
@@ -48,13 +48,13 @@ func HashUInt64(input uint64) uint32 {
 	low := uint32(input)
 	high := uint32(input >> 32)
 
-	key := mixKey(low)
-	hash := mixHash(seed, key)
+	key := MixKey(low)
+	hash := MixHash(seed, key)
 
-	key = mixKey(high)
-	hash = mixHash(hash, key)
+	key = MixKey(high)
+	hash = MixHash(hash, key)
 
-	return finalize(hash, 8)
+	return Finalize(hash, 8)
 }
 
 func HashString(input string) uint32 {
@@ -65,8 +65,8 @@ func HashString(input string) uint32 {
 	// step through the string 4 bytes at a time
 	for i := 3; i < len; i += 4 {
 		key := uint32(input[i-3]) | uint32(input[i-2]<<8) | uint32(input[i-1]<<16) | uint32(input[i]<<24)
-		key = mixKey(key)
-		hash = mixHash(hash, key)
+		key = MixKey(key)
+		hash = MixHash(hash, key)
 	}
 
 	// deal with remaining characters
@@ -81,23 +81,21 @@ func HashString(input string) uint32 {
 		case 3:
 			key = uint32(input[len-3]) | uint32(input[len-2]<<8) | uint32(input[len-1]<<16)
 		}
-		key = mixKey(key)
-		hash = mixHash(hash, key)
+		key = MixKey(key)
+		hash = MixHash(hash, key)
 	}
 
-	return finalize(hash, int32(len))
+	return Finalize(hash, int32(len))
 }
 
-// implementation details
-
-func mixKey(key uint32) uint32 {
+func MixKey(key uint32) uint32 {
 	key *= c1
 	key = rotateLeft(key, r1)
 	key *= c2
 	return key
 }
 
-func mixHash(hash uint32, key uint32) uint32 {
+func MixHash(hash uint32, key uint32) uint32 {
 	hash ^= key
 	hash = rotateLeft(hash, r2)
 	hash = hash*m + n
@@ -106,7 +104,7 @@ func mixHash(hash uint32, key uint32) uint32 {
 }
 
 // finalize forces all bits of a hash block to avalanche
-func finalize(hash uint32, length int32) uint32 {
+func Finalize(hash uint32, length int32) uint32 {
 	hash ^= uint32(length)
 	hash ^= hash >> 16
 	hash *= 0x85ebca6b
@@ -116,12 +114,14 @@ func finalize(hash uint32, length int32) uint32 {
 	return hash
 }
 
-func finalizeCollHash(hash uint32, count int32) uint32 {
+func FinalizeCollHash(hash uint32, count int32) uint32 {
 	h1 := seed
-	k1 := mixKey(hash)
-	h1 = mixHash(h1, k1)
-	return finalize(h1, count)
+	k1 := MixKey(hash)
+	h1 = MixHash(h1, k1)
+	return Finalize(h1, count)
 }
+
+// implementation details
 
 func rotateLeft(x uint32, n uint32) uint32 {
 	return (x << n) | (x >> (32 - n))

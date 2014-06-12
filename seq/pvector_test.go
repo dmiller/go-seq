@@ -12,14 +12,14 @@ import (
 )
 
 //  PVector needs to implement the following seq interfaces:
-//        Obj Meta Seqable PCollection Lookup Associative PStack PVector Counted Reversible Indexed
+//        MetaW Meta Seqable PCollection Lookup Associative PStack PVector Counted Reversible Indexed
 //  Are we going to do EditableCollection?
 //  Also, Equatable and Hashable
 func TestPVectorImplementInterfaces(t *testing.T) {
 	var c interface{} = NewPVectorFromItems("abc", "def")
 
-	if _, ok := c.(iseq.Obj); !ok {
-		t.Error("PList must implement Obj")
+	if _, ok := c.(iseq.MetaW); !ok {
+		t.Error("PList must implement MetaW")
 	}
 
 	if _, ok := c.(iseq.Meta); !ok {
@@ -62,7 +62,7 @@ func TestPVectorImplementInterfaces(t *testing.T) {
 		t.Error("PList must implement Counted")
 	}
 
-	if _, ok := c.(iseq.Equatable); !ok {
+	if _, ok := c.(iseq.Equivable); !ok {
 		t.Error("PList must implement Equatable")
 	}
 
@@ -183,7 +183,7 @@ func TestPVectorEquals(t *testing.T) {
 	}
 }
 
-// iseq.Meta, iseq.Obj tests
+// iseq.Meta, iseq.MetaW tests
 
 // TODO: test WithMeta once we have PMap
 
@@ -235,7 +235,7 @@ func TestPVectorCons(t *testing.T) {
 		}
 	}
 
-	if !sequtil.SeqEquals(c4.Seq(), v4.Seq()) {
+	if !sequtil.SeqEquiv(c4.Seq(), v4.Seq()) {
 		t.Error("Something wrong with Seq()ing on PVector")
 	}
 }
@@ -256,7 +256,7 @@ func TestPVectorEmpty(t *testing.T) {
 func TestPVectorConses(t *testing.T) {
 	v3 := NewPVectorFromItems("abc", 4, 5)
 
-	s4 := v3.Seq().SCons(12)
+	s4 := v3.Seq().ConsS(12)
 
 	if s4.Count() != 4 {
 		t.Error("SCons of PVector.Seq has wrong count")
@@ -265,7 +265,7 @@ func TestPVectorConses(t *testing.T) {
 	if s4.First() != 12 {
 		t.Error("SCons of PVector.Seq has wrong first item")
 	}
-	if !sequtil.SeqEquals(s4.Next(), v3.Seq()) {
+	if !sequtil.SeqEquiv(s4.Next(), v3.Seq()) {
 		t.Error("SCons of PVector.Seq has wrong next seq")
 	}
 }
@@ -291,26 +291,26 @@ func TestPVectorAssocN(t *testing.T) {
 	v3o := NewPVectorFromItems("abc", 4, 5)
 	v3 := NewPVectorFromItems("abc", 4, 5)
 	v3a := v3.AssocN(1, "def")
-	if !sequtil.SeqEquals(v3o.Seq(), v3.Seq()) {
+	if !sequtil.SeqEquiv(v3o.Seq(), v3.Seq()) {
 		t.Error("PVector.AssocN: appears to have mutated original")
 	}
 	if v3a.Count() != v3.Count() {
 		t.Errorf("PVector.AssocN: count should be %v, got %v", v3.Count(), v3a.Count())
 	}
 	v3t := NewPVectorFromItems("abc", "def", 5)
-	if !sequtil.SeqEquals(v3a.Seq(), v3t.Seq()) {
+	if !sequtil.SeqEquiv(v3a.Seq(), v3t.Seq()) {
 		t.Errorf("PVector.AssocN: wrong items")
 	}
 
 	v4a := v3.AssocN(3, "pqr")
-	if !sequtil.SeqEquals(v3o.Seq(), v3.Seq()) {
+	if !sequtil.SeqEquiv(v3o.Seq(), v3.Seq()) {
 		t.Error("PVector.AssocN: appears to have mutated original")
 	}
 	if v4a.Count() != v3.Count()+1 {
 		t.Errorf("PVector.AssocN: appending count should be %v, got %v", v3.Count()+1, v3a.Count())
 	}
 	v4t := NewPVectorFromItems("abc", 4, 5, "pqr")
-	if !sequtil.SeqEquals(v4a.Seq(), v4t.Seq()) {
+	if !sequtil.SeqEquiv(v4a.Seq(), v4t.Seq()) {
 		t.Errorf("PVector.AssocN: wrong items on append")
 	}
 

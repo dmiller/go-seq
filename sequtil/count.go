@@ -4,6 +4,10 @@
 
 package sequtil
 
+import (
+	"github.com/dmiller/go-seq/iseq"
+)
+
 func Count(o interface{}) int {
 	if o == nil {
 		return 0
@@ -46,9 +50,3 @@ func SeqCount(s0 iseq.Seq) int {
 var (
 	zeroBytes = make([]byte, 4)
 )
-
-func HashSeq(seq iseq.Seq) uint32 {
-	h := fnv.New32()
-	AddHashSeq(h, seq)
-	return h.Sum32()
-}

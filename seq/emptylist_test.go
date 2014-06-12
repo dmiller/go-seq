@@ -12,12 +12,12 @@ import (
 func TestEmptyListImplementInterfaces(t *testing.T) {
 	var c interface{} = CachedEmptyList
 
-	if _, ok := c.(iseq.Obj); !ok {
+	if _, ok := c.(iseq.MetaW); !ok {
 		t.Error("EmptyList must implement Obj")
 	}
 
 	if _, ok := c.(iseq.Meta); !ok {
-		t.Error("EmptyList must implement Meta")
+		t.Error("EmptyList must implement MetaW")
 	}
 
 	if _, ok := c.(iseq.PCollection); !ok {
@@ -40,7 +40,7 @@ func TestEmptyListImplementInterfaces(t *testing.T) {
 		t.Error("EmptyList must implement Counted")
 	}
 
-	if _, ok := c.(iseq.Equatable); !ok {
+	if _, ok := c.(iseq.Equivable); !ok {
 		t.Error("EmptyList must implement Equatable")
 	}
 

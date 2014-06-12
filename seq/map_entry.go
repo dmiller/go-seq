@@ -24,7 +24,7 @@ func (me MapEntry) Val() interface{} {
 
 func (me MapEntry) Equiv(o interface{}) bool {
 	if you, ok := o.(iseq.MapEntry); ok {
-		return sequtil.Equals(me.key, you.Key()) && sequtil.Equals(me.val, you.Val())
+		return sequtil.Equiv(me.key, you.Key()) && sequtil.Equiv(me.val, you.Val())
 	}
 	return false
 }

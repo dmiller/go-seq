@@ -27,5 +27,5 @@ digraph G {
 
 
 
-	Meta -> Obj;
+	Meta -> MetaW;
 }

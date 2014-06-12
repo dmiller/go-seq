@@ -35,8 +35,8 @@ func TestConsCtors(t *testing.T) {
 func TestConsImplementInterfaces(t *testing.T) {
 	var c interface{} = NewCons("abc", nil)
 
-	if _, ok := c.(iseq.Obj); !ok {
-		t.Error("Cons must implement Obj")
+	if _, ok := c.(iseq.MetaW); !ok {
+		t.Error("Cons must implement MetaW")
 	}
 
 	if _, ok := c.(iseq.Meta); !ok {
@@ -51,7 +51,7 @@ func TestConsImplementInterfaces(t *testing.T) {
 		t.Error("Cons must implement Seqable")
 	}
 
-	if _, ok := c.(iseq.Equatable); !ok {
+	if _, ok := c.(iseq.Equivable); !ok {
 		t.Error("Cons must implement Equatable")
 	}
 

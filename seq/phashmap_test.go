@@ -14,8 +14,8 @@ import (
 func TestPHashMapImplementInterfaces(t *testing.T) {
 	var c interface{} = NewPHashMapFromItems("abc", "def")
 
-	if _, ok := c.(iseq.Obj); !ok {
-		t.Error("PHashMap must implement Obj")
+	if _, ok := c.(iseq.MetaW); !ok {
+		t.Error("PHashMap must implement MetaW")
 	}
 
 	if _, ok := c.(iseq.Meta); !ok {
@@ -46,7 +46,7 @@ func TestPHashMapImplementInterfaces(t *testing.T) {
 		t.Error("PHashMap must implement Counted")
 	}
 
-	if _, ok := c.(iseq.Equatable); !ok {
+	if _, ok := c.(iseq.Equivable); !ok {
 		t.Error("PHashMap must implement Equatable")
 	}
 
@@ -174,7 +174,7 @@ func TestPHashMapGoesBig(t *testing.T) {
 	}
 }
 
-// interface iseq.Obj
+// interface iseq.MetaW
 
 // TODO: test WithMeta once we have PMap
 

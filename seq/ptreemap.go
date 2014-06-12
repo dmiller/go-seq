@@ -78,9 +78,9 @@ func NewPTreeMapFromItemsC(comp iseq.CompareFn, items ...interface{}) *PTreeMap 
 // interface Meta is covered by the AMeta embedding
 // TODO: IEditableCollection
 
-// interface iseq.Obj
+// interface iseq.MetaW
 
-func (m *PTreeMap) WithMeta(meta iseq.PMap) iseq.Obj {
+func (m *PTreeMap) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return &PTreeMap{comp: m.comp, tree: m.tree, count: m.count, AMeta: AMeta{m.meta}}
 }
 
@@ -225,14 +225,8 @@ func (m *PTreeMap) SeqFrom(key interface{}, ascending bool) iseq.Seq {
 
 // interfaces Equivable, Hashable
 
-func (p *PTreeMap) Equals(o interface{}) bool {
-	return sequtil.MapEquals(p, o)
-}
-
-// TODO: figure out which we want!
-
 func (m *PTreeMap) Equiv(o interface{}) bool {
-	return sequtil.Equiv(m, o)
+	return sequtil.MapEquiv(m, o)
 }
 
 func (p *PTreeMap) Hash() uint32 {
@@ -619,7 +613,7 @@ type tmNodeSeq struct {
 
 // interface iseq.MetaW
 
-func (t *tmNodeSeq) WithMeta(meta iseq.PMap) iseq.Obj {
+func (t *tmNodeSeq) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return &tmNodeSeq{AMeta: AMeta{meta}, stack: t.stack, asc: t.asc, cnt: t.cnt}
 }
 
@@ -679,8 +673,7 @@ func (t *tmNodeSeq) Empty() iseq.PCollection {
 }
 
 func (t *tmNodeSeq) Equiv(o interface{}) bool {
-	// TODO: revisit Equiv
-	return sequtil.Equals(t, o)
+	return sequtil.Equiv(t, o)
 }
 
 // TODO: Test that keys are ordered when seq'd

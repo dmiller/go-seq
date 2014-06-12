@@ -47,11 +47,11 @@ func (a *arrayChunk) NthD(i int, notFound interface{}) interface{} {
 	return notFound
 }
 
-func (a *arrayChunk) NthE(i int, notFound interface{}) (interface{}, error) {
+func (a *arrayChunk) NthE(i int) (interface{}, error) {
 	if i >= 0 && i < a.Count1() {
 		return a.Nth(i), nil
 	}
-	return notFound, errors.New("Index out of bounds for chunk")
+	return nil, errors.New("Index out of bounds for chunk")
 }
 
 // interface Chunk

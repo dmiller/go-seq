@@ -17,6 +17,8 @@ type Equivable interface {
 // Hashable is the interface for types that support computing a hash code.
 // Two items that are Equiv should have the same hash code.
 type Hashable interface {
+
+	// Hashable extends Equivable
 	Equivable
 
 	// Returns a hash code for the thing.
@@ -141,6 +143,7 @@ type Meta interface {
 }
 
 // An MetaW is a Meta that also supports creating a copy with new metadata
+// This was originally clojure.lang.Obj
 type MetaW interface {
 	Meta
 	WithMeta(meta PMap) MetaW

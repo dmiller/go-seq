@@ -5,13 +5,12 @@
 package sequtil
 
 import (
-	"errors"
 	"github.com/dmiller/go-seq/iseq"
 )
 
 // MapCons adds (conses) a new key/value pair onto an iseq.PMap
 // A MapEntry adds its key/value.
-// A PVector uses v[2*i] v[2*i+1] as key/value pairs 
+// A PVector uses v[2*i] v[2*i+1] as key/value pairs
 // Otherwise, we need a sequence of iseq.MapEntry values
 // Assumes its argument is one of the above; else panics
 func MapCons(m iseq.PMap, o interface{}) iseq.PMap {
@@ -49,5 +48,5 @@ func ConvertToSeq(o interface{}) iseq.Seq {
 		return s.Seq()
 	}
 
-	panic "Cannot convert object to sequence"
+	panic("Cannot convert object to sequence")
 }

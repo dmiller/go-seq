@@ -56,7 +56,7 @@ func NewPListFromSlice(init []interface{}) *PList {
 
 // interface iseq.MetaW
 
-func (p *PList) WithMeta(meta iseq.PMap) iseq.Obj {
+func (p *PList) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return NewPListMeta1N(meta, p.first, p.rest, p.count)
 }
 

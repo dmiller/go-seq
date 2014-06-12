@@ -6,7 +6,6 @@ package seq
 
 import (
 	"github.com/dmiller/go-seq/iseq"
-	"github.com/dmiller/go-seq/sequtil"
 )
 
 // EmptyList implements an empty iseq.PList
@@ -31,7 +30,7 @@ var (
 
 // interface iseq.MetaW
 
-func (e *EmptyList) WithMeta(meta iseq.PMap) iseq.Obj {
+func (e *EmptyList) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return &EmptyList{AMeta: AMeta{meta}}
 }
 
@@ -48,7 +47,7 @@ func (e *EmptyList) Count() int {
 }
 
 func (e *EmptyList) Cons(o interface{}) iseq.PCollection {
-	return e.SCons(o)
+	return e.ConsS(o)
 }
 
 func (e *EmptyList) Empty() iseq.PCollection {
@@ -70,9 +69,7 @@ func (e *EmptyList) More() iseq.Seq {
 }
 
 func (e *EmptyList) ConsS(o interface{}) iseq.Seq {
-	// TODO: really, this needs to return a PList of one element.
-	// Fix when we have a true PList
-	return &Cons{first: o, more: e}
+	return NewPList1(o)
 }
 
 // interface Counted

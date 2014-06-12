@@ -38,7 +38,7 @@ func newChunkedSeqRaw(v *PVector, node []interface{}, i int, offset int) *chunke
 
 // interface MetaW
 
-func (c *chunkedSeq) WithMeta(meta iseq.PMap) iseq.Obj {
+func (c *chunkedSeq) WithMeta(meta iseq.PMap) iseq.MetaW {
 	if meta == c.meta {
 		return c
 	}
@@ -85,8 +85,7 @@ func (c *chunkedSeq) Empty() iseq.PCollection {
 }
 
 func (c *chunkedSeq) Equiv(o interface{}) bool {
-	// TODO: revisit Equiv
-	return sequtil.Equals(c, o)
+	return sequtil.Equiv(c, o)
 }
 
 func (c *chunkedSeq) First() interface{} {

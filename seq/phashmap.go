@@ -83,7 +83,7 @@ func NewPHashMapFromItems(items ...interface{}) *PHashMap {
 
 // interface iseq.MetaW
 
-func (m *PHashMap) WithMeta(meta iseq.PMap) iseq.Obj {
+func (m *PHashMap) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return &PHashMap{AMeta: AMeta{meta},
 		count:    m.count,
 		root:     m.root,
@@ -430,7 +430,7 @@ func createArrayHmnodeSeq(meta iseq.PMap, nodes []hmnode, i int, s iseq.Seq) *ar
 	return nil
 }
 
-func (a *arrayHmnodeSeq) WithMeta(meta iseq.PMap) iseq.Obj {
+func (a *arrayHmnodeSeq) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return createArrayHmnodeSeq(meta, a.nodes, a.i, a.s)
 }
 
@@ -446,7 +446,7 @@ func (a *arrayHmnodeSeq) Cons(o interface{}) iseq.PCollection {
 	return NewCons(o, a)
 }
 
-func (a *arrayHmnodeSeq) SCons(o interface{}) iseq.Seq {
+func (a *arrayHmnodeSeq) ConsS(o interface{}) iseq.Seq {
 	return NewCons(o, a)
 }
 
@@ -463,8 +463,7 @@ func (a *arrayHmnodeSeq) Empty() iseq.PCollection {
 }
 
 func (a *arrayHmnodeSeq) Equiv(o interface{}) bool {
-	// TODO: revisit Equiv
-	return sequtil.Equals(a, o)
+	return sequtil.Equiv(a, o)
 }
 
 func (a *arrayHmnodeSeq) Seq() iseq.Seq {
@@ -742,8 +741,8 @@ func createHmnodeSeq3(array []interface{}, i int, s iseq.Seq) *hmnodeSeq {
 // hmnodeSeq must implement the following iseq interfaces:
 //  Meta, MetaW, Seqable, PCollection, Seq
 
-// interface iseq.Obj
-func (h *hmnodeSeq) WithMeta(meta iseq.PMap) iseq.Obj {
+// interface iseq.MetaW
+func (h *hmnodeSeq) WithMeta(meta iseq.PMap) iseq.MetaW {
 	return &hmnodeSeq{AMeta: AMeta{meta}, array: h.array, i: h.i, s: h.s}
 }
 

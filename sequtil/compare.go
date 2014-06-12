@@ -4,6 +4,11 @@
 
 package sequtil
 
+import (
+	"github.com/dmiller/go-seq/iseq"
+	"reflect"
+)
+
 func DefaultCompareFn(k1 interface{}, k2 interface{}) int {
 	if k1 == k2 {
 		return 0
