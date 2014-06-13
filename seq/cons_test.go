@@ -113,3 +113,11 @@ func TestConsEquiv(t *testing.T) {
 		t.Error("cons equiv dissimilar cons")
 	}
 }
+
+func TestConsZeroValue(t *testing.T) {
+	c1 := new(Cons)
+	c2 := NewCons(nil, nil)
+	if !c1.Equiv(c2) {
+		t.Error("Expect zero-value Cons to be equiv to (nil)")
+	}
+}
