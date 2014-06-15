@@ -1,4 +1,4 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -151,12 +151,12 @@ func TestPVectorFromItemsWorks(t *testing.T) {
 	}
 }
 
-// Equality tests
+// Equiv tests
 
-func TestPVectorEquals(t *testing.T) {
+func TestPVectorEquiv(t *testing.T) {
 	sl := []interface{}{"def", 2, 3}
 	v := NewPVectorFromSlice(sl)
-	if v.Equals(sl) {
+	if v.Equiv(sl) {
 		t.Error("PVector should not Equals a non-PVector")
 	}
 
@@ -164,16 +164,16 @@ func TestPVectorEquals(t *testing.T) {
 	sl2 := []interface{}{"def", 2, 4}
 	v2 := NewPVectorFromSlice(sl2)
 
-	if !v.Equals(v1) {
+	if !v.Equiv(v1) {
 		t.Error("PVector should equal equal PVector")
 	}
 
-	if v.Equals(v2) {
+	if v.Equiv(v2) {
 		t.Error("PVector should not equal non-equal PVector")
 	}
 
 	var seq iseq.Seq = NewPListFromSlice(sl)
-	if !v.Equals(seq) {
+	if !v.Equiv(seq) {
 		t.Error("PVector should equal equivalent iseq.Seq")
 	}
 

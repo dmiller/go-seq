@@ -78,10 +78,21 @@ func NewPTreeMapFromItemsC(comp iseq.CompareFn, items ...interface{}) *PTreeMap 
 // interface Meta is covered by the AMeta embedding
 // TODO: IEditableCollection
 
+// The only thing preventing a zero-value PTreeMap from being valid
+// in our original implementation was having a nil comp.
+// Special case that and we're golden.
+
+func (m *PTreeMap) GetComp() iseq.CompareFn {
+	if m.comp == nil {
+		m.comp = sequtil.DefaultCompareFn
+	}
+	return m.comp
+}
+
 // interface iseq.MetaW
 
 func (m *PTreeMap) WithMeta(meta iseq.PMap) iseq.MetaW {
-	return &PTreeMap{comp: m.comp, tree: m.tree, count: m.count, AMeta: AMeta{m.meta}}
+	return &PTreeMap{comp: m.GetComp(), tree: m.tree, count: m.count, AMeta: AMeta{m.meta}}
 }
 
 // interface iseq.Associative, iseq.Lookup
@@ -117,9 +128,9 @@ func (m *PTreeMap) AssocM(key interface{}, val interface{}) iseq.PMap {
 		if foundNode.val() == val {
 			return m
 		}
-		return &PTreeMap{comp: m.comp, tree: m.replace(m.tree, key, val), count: m.count, AMeta: AMeta{m.meta}}
+		return &PTreeMap{comp: m.GetComp(), tree: m.replace(m.tree, key, val), count: m.count, AMeta: AMeta{m.meta}}
 	}
-	return &PTreeMap{comp: m.comp, tree: tree.blacken(), count: m.count + 1, AMeta: AMeta{m.meta}}
+	return &PTreeMap{comp: m.GetComp(), tree: tree.blacken(), count: m.count + 1, AMeta: AMeta{m.meta}}
 }
 
 func (m *PTreeMap) Without(key interface{}) iseq.PMap {
@@ -128,9 +139,9 @@ func (m *PTreeMap) Without(key interface{}) iseq.PMap {
 		if foundNode == nil {
 			return m
 		}
-		return &PTreeMap{comp: m.comp, AMeta: AMeta{m.meta}}
+		return &PTreeMap{comp: m.GetComp(), AMeta: AMeta{m.meta}}
 	}
-	return &PTreeMap{comp: m.comp, tree: tree.blacken(), count: m.count - 1, AMeta: AMeta{m.meta}}
+	return &PTreeMap{comp: m.GetComp(), tree: tree.blacken(), count: m.count - 1, AMeta: AMeta{m.meta}}
 }
 
 func (m *PTreeMap) ConsM(e iseq.MapEntry) iseq.PMap {
@@ -148,7 +159,7 @@ func (m *PTreeMap) Cons(o interface{}) iseq.PCollection {
 }
 
 func (m *PTreeMap) Empty() iseq.PCollection {
-	return &PTreeMap{comp: m.comp, AMeta: AMeta{m.meta}}
+	return &PTreeMap{comp: m.GetComp(), AMeta: AMeta{m.meta}}
 }
 
 func (m *PTreeMap) Count1() int {
@@ -174,7 +185,7 @@ func (m *PTreeMap) Rseq() iseq.Seq {
 // interface Sorted
 
 func (m *PTreeMap) Comparator() iseq.CompareFn {
-	return m.comp
+	return m.GetComp()
 }
 
 func (m *PTreeMap) EntryKey(entry interface{}) interface{} {
@@ -255,7 +266,7 @@ func (m *PTreeMap) tmNodeAt(key interface{}) tmNode {
 }
 
 func (m *PTreeMap) doCompare(k1, k2 interface{}) int {
-	return m.comp(k1, k2)
+	return m.GetComp()(k1, k2)
 }
 
 func (m *PTreeMap) addNode(t tmNode, key, val interface{}) (newRoot tmNode, addNode tmNode) {

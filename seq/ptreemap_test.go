@@ -1,4 +1,4 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -354,5 +354,13 @@ func TestPTreeMapWithout(t *testing.T) {
 	if m2b.ContainsKey(3) {
 		t.Error("Without'ing present key, but it's still there")
 
+	}
+}
+
+func TestPTreeMapZeroValue(t *testing.T) {
+	m1 := new(PTreeMap)
+	m2 := EmptyPTreeMap
+	if !m1.Equiv(m2) {
+		t.Error("A zero-value PTreeMap should be equiv to a EmptyPTreeMap")
 	}
 }

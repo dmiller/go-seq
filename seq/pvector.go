@@ -33,12 +33,17 @@ const (
 )
 
 var (
-	emptyVnode   = &vnode{array: make([]interface{}, branchFactor)}
+	emptyVnode = &vnode{array: make([]interface{}, branchFactor)}
+
+	// EmptyPVector represents a PVector with zero elements.
+	// The zero-value for PVector is not valid.
+	// Use this value if you need an empty PVector.
 	EmptyPVector = &PVector{cnt: 0, shift: baseShift, root: emptyVnode, tail: make([]interface{}, 0)}
 )
 
 // ctors
 
+// Create a PVector from an ISeq
 func NewPVectorFromISeq(items iseq.Seq) *PVector {
 	// TODO: redo when we have transients
 	var ret iseq.PVector = EmptyPVector
@@ -48,6 +53,7 @@ func NewPVectorFromISeq(items iseq.Seq) *PVector {
 	return ret.(*PVector)
 }
 
+// Create a PVector from a slice (of interface{})
 func NewPVectorFromSlice(items []interface{}) *PVector {
 	// TODO: redo when we have transients
 	var ret iseq.PVector = EmptyPVector
@@ -57,6 +63,7 @@ func NewPVectorFromSlice(items []interface{}) *PVector {
 	return ret.(*PVector)
 }
 
+// Create a PVector from the given arguments
 func NewPVectorFromItems(items ...interface{}) *PVector {
 	return NewPVectorFromSlice(items)
 }
@@ -75,6 +82,7 @@ func (v *PVector) WithMeta(meta iseq.PMap) iseq.MetaW {
 }
 
 // interface Seqable members
+
 func (v *PVector) Seq() iseq.Seq {
 	if cs := v.chunkedSeq(); cs != nil {
 		// avoid the dreaded nil interface problem
@@ -361,14 +369,8 @@ func (v *PVector) tailoff() int {
 
 // interfaces Equivable, Hashable
 
-// TODO: FIX THIS!
+func (p *PVector) Equiv(o interface{}) bool {
 
-func (v *PVector) Equiv(o interface{}) bool {
-	// TODO: Look more closely at Equiv/Equals
-	return sequtil.Equiv(v, o)
-}
-
-func (p *PVector) Equals(o interface{}) bool {
 	if p == o {
 		return true
 	}

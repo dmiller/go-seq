@@ -10,9 +10,6 @@ import (
 )
 
 // PList implements a persistent immutable list
-//
-// TODO: FIX: Zero value is not valid!
-// We use 0 as an indicator that hash is not cached.
 type PList struct {
 	first interface{}
 	rest  iseq.PList
@@ -29,6 +26,12 @@ type PList struct {
 //    because I can't figure out a significant use of it in the Clojure code
 
 // interface Meta is covered by the AMeta embedding
+
+// In Clojure (JVM or CLR), a PList cannot have zero elements.
+// If we did the same here, the zero-value of a PList would be inconsistent,
+//   in that the count is wrong.
+// So, we treat the zero-value as an empty list -- count == 0 is the determiner.
+// We look at EmptyList for inspiration to handle count == 0 cases.
 
 // c-tors
 
@@ -63,6 +66,9 @@ func (p *PList) WithMeta(meta iseq.PMap) iseq.MetaW {
 // interface iseq.Seqable
 
 func (p *PList) Seq() iseq.Seq {
+	if p.count == 0 {
+		return nil
+	}
 	return p
 }
 
@@ -87,7 +93,7 @@ func (p *PList) First() interface{} {
 }
 
 func (p *PList) Next() iseq.Seq {
-	if p.count == 1 {
+	if p.count <= 1 {
 		return nil
 	}
 	return p.rest.Seq()
@@ -132,7 +138,7 @@ func (p *PList) Equiv(o interface{}) bool {
 	}
 
 	if os, ok := o.(iseq.Seqable); ok {
-		return sequtil.SeqEquiv(p, os.Seq())
+		return sequtil.SeqEquiv(p.Seq(), os.Seq())
 	}
 
 	return false
