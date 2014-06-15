@@ -20,6 +20,9 @@ func DefaultCompareFn(k1 interface{}, k2 interface{}) int {
 		if c, ok := k1.(iseq.Comparer); ok {
 			return c.Compare(k2)
 		}
+		if c, ok := k2.(iseq.Comparer); ok {
+			return -c.Compare(k1)
+		}
 		if s, ok := k1.(string); ok {
 			return CompareString(s, k2)
 		}
@@ -54,13 +57,20 @@ func CompareString(s string, x interface{}) int {
 		return 1
 	}
 
-	return -1 // don't feel like panicking.
+	panic "can't compare string to non-string, non-iseq.Comparer"
 }
 
 func CompareComparableNumeric(x1 interface{}, x2 interface{}) int {
 	// n1 should be numeric
 	switch x1 := x1.(type) {
-	case bool, int, int8, int32, int64:
+	case bool:
+		b1 := bool(x1)
+		if b1 {
+			return compareNumericInt(int64(1), x2)
+		} else {
+			return compareNumericInt(int64(0), x2)
+		}
+	case int, int8, int32, int64:
 		n1 := reflect.ValueOf(x1).Int()
 		return compareNumericInt(n1, x2)
 	case uint, uint8, uint32, uint64:
@@ -75,7 +85,21 @@ func CompareComparableNumeric(x1 interface{}, x2 interface{}) int {
 
 func compareNumericInt(n1 int64, x2 interface{}) int {
 	switch x2 := x2.(type) {
-	case bool, int, int8, int32, int64:
+	case bool:
+		b2 := bool(x2)
+		var n2 int64
+		if b2 {
+			n2 = 1
+		}
+		if n1 < n2 {
+			return -1
+		}
+		if n1 > n2 {
+			return 1
+		}
+		return 0
+
+	case int, int8, int32, int64:
 		n2 := reflect.ValueOf(x2).Int()
 		if n1 < n2 {
 			return -1
@@ -115,7 +139,21 @@ func compareNumericInt(n1 int64, x2 interface{}) int {
 
 func compareNumericUint(n1 uint64, x2 interface{}) int {
 	switch x2 := x2.(type) {
-	case bool, int, int8, int32, int64:
+	case bool:
+		b2 := bool(x2)
+		var n2 uint64
+		if b2 {
+			n2 = 1
+		}
+		if n1 < n2 {
+			return -1
+		}
+		if n1 > n2 {
+			return 1
+		}
+		return 0
+
+	case int, int8, int32, int64:
 		n2 := reflect.ValueOf(x2).Int()
 		if n2 < 0 {
 			return 1
