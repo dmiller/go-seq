@@ -21,6 +21,7 @@ type CountDownLatch struct {
 	countMutex  *sync.Mutex
 }
 
+// NewCountDownLatch returns a CountDownLatch with an initial count
 func NewCountDownLatch(i int) *CountDownLatch {
 	return &CountDownLatch{count: int32(i),
 		zeroReached: make(chan bool, 1),
@@ -31,10 +32,17 @@ func NewCountDownLatch(i int) *CountDownLatch {
 	}
 }
 
+// Completed returns true if the latch is completed (has already been awaited on)
 func (c *CountDownLatch) Completed() bool {
 	return atomic.LoadInt32(&c.completed) == 1
 }
 
+// TimedOut returns true if a latch await has timed out
+func (c *CountDownLatch) TimedOut() bool {
+	return atomic.LoadInt32(&c.timedOut) == 1
+}
+
+// CountDown decrements the latch count by 1
 func (c *CountDownLatch) CountDown() {
 	c.countMutex.Lock()
 	defer c.countMutex.Unlock()
@@ -53,6 +61,8 @@ func (c *CountDownLatch) CountDown() {
 	}
 }
 
+// Await waits up to the given amount of time for the latch to count down to zero.
+// Returns true if timed-out, false if zero reached
 func (c *CountDownLatch) Await(dur time.Duration) bool {
 	c.awaitMutex.Lock()
 	defer func() {

@@ -8,10 +8,12 @@ import (
 	"sync/atomic"
 )
 
-type IdGenerator struct {
+// An IDGenerator provides a sequential stream of uint64 values (safe for concurrent access)
+type IDGenerator struct {
 	id uint64
 }
 
-func (g *IdGenerator) Next() uint64 {
+// Next returns the next value in sequence
+func (g *IDGenerator) Next() uint64 {
 	return atomic.AddUint64(&g.id, 1)
 }

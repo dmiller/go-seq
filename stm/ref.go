@@ -48,6 +48,11 @@ func (t *tval) setValue(val interface{}, point uint64) {
 	t.point = point
 }
 
+const (
+	// DefaultMaxHistory is the default max history for Refs
+	DefaultMaxHistory = 10
+)
+
 // A Ref holds a value that can be updated in an STM transaction.
 type Ref struct {
 
@@ -70,14 +75,14 @@ type Ref struct {
 }
 
 // id generator for Refs
-var refIds = new(IdGenerator)
+var refIds = new(IDGenerator)
 
 // Factories
 
 func NewRef(val interface{}) *Ref {
 	return &Ref{
 		id:         refIds.Next(),
-		maxHistory: 10,
+		maxHistory: DefaultMaxHistory,
 		tvals:      newTval(val, 0)}
 }
 

@@ -55,7 +55,7 @@ func (info *TxInfo) isRunning() bool {
 // where there are conflicts.
 // Transactions consume a point for init, for each retry,
 // and on commit if writing
-var lastPoint = new(IdGenerator)
+var lastPoint = new(IDGenerator)
 
 // A CFn is a function suitable for calling as a commute on a ref
 type CFn func(interface{}, []interface{}) interface{}
