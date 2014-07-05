@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package murmer3 provides functions implementing the Murmur3 hashing algorithm.
+// Package murmur3 provides functions implementing the Murmur3 hashing algorithm.
 // The ClojureJVM version imported the Guava Murmur3 implementation
 // and made some changes.
 // For ClojureCLR and here, I copied the API stubs, then implemented the API
@@ -22,14 +22,17 @@ const n uint32 = 0xe6546b64
 
 // The public interface
 
+// HashInt32 computes a hash value for an int32
 func HashInt32(input int32) uint32 {
 	return HashUInt32(uint32(input))
 }
 
+// HashInt64 computes a hash value for an int64
 func HashInt64(input int64) uint32 {
 	return HashUInt64(uint64(input))
 }
 
+// HashUInt32 computes a hash value for a uint32
 func HashUInt32(input uint32) uint32 {
 	if input == 0 {
 		return 0
@@ -40,6 +43,7 @@ func HashUInt32(input uint32) uint32 {
 	return Finalize(hash, 4)
 }
 
+// HashUInt64 computes a hash value for a uint64
 func HashUInt64(input uint64) uint32 {
 	if input == 0 {
 		return 0
@@ -57,6 +61,7 @@ func HashUInt64(input uint64) uint32 {
 	return Finalize(hash, 8)
 }
 
+// HashString computes a hash value for a string
 func HashString(input string) uint32 {
 
 	hash := seed
@@ -88,6 +93,7 @@ func HashString(input string) uint32 {
 	return Finalize(hash, int32(len))
 }
 
+// MixKey scrambles the bits in 32-bit value
 func MixKey(key uint32) uint32 {
 	key *= c1
 	key = rotateLeft(key, r1)
@@ -95,6 +101,7 @@ func MixKey(key uint32) uint32 {
 	return key
 }
 
+// MixHash mixes a new 32-bit value into a given hash value
 func MixHash(hash uint32, key uint32) uint32 {
 	hash ^= key
 	hash = rotateLeft(hash, r2)
@@ -103,7 +110,7 @@ func MixHash(hash uint32, key uint32) uint32 {
 
 }
 
-// finalize forces all bits of a hash block to avalanche
+// Finalize forces all bits of a hash block to avalanche
 func Finalize(hash uint32, length int32) uint32 {
 	hash ^= uint32(length)
 	hash ^= hash >> 16
@@ -114,6 +121,7 @@ func Finalize(hash uint32, length int32) uint32 {
 	return hash
 }
 
+// FinalizeCollHash forces all bits of a hash block to avalanche, and add in a length count
 func FinalizeCollHash(hash uint32, count int32) uint32 {
 	h1 := seed
 	k1 := MixKey(hash)
