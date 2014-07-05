@@ -25,7 +25,7 @@ type Hashable interface {
 	Hash() uint32
 }
 
-// Sequable is the interface for types that can produce an iseq.Seq
+// Seqable is the interface for types that can produce an iseq.Seq
 type Seqable interface {
 
 	// Returns a sequence that can be iterated across.
