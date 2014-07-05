@@ -1,352 +1,247 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package stm
 
 import (
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
+// A tval holds the value for a Ref in a transaction
+type tval struct {
+
+	// the value
+	val interface{}
+
+	// the transaction commit/read point at which this value was set
+	point uint64
+
+	// the prior tval
+	// with next, implements a doubly-linked circular list
+	prior *tval
+
+	// the next tval
+	// with prior, implements a doubly-linked circular list
+	next *tval
+}
+
+func newTvalPrior(val interface{}, point uint64, prior *tval) *tval {
+	t := &tval{val: val, point: point, prior: prior, next: prior.next}
+	prior.next = t
+	t.next.prior = t
+	return t
+}
+
+func newTval(val interface{}, point uint64) *tval {
+	t := &tval{val: val, point: point}
+	t.prior = t
+	t.next = t
+	return t
+}
+
+func (t *tval) setValue(val interface{}, point uint64) {
+	t.val = val
+	t.point = point
+}
 
 // A Ref holds a value that can be updated in an STM transaction.
-type Ref {
+type Ref struct {
 
+	// Values at points in time for this Ref
+	// Doubly-linked list, size controlled by history limit
+	tvals *tval
+
+	// Number of faults for the reference
+	faults uint32
+
+	lock sync.RWMutex
+
+	minHistory uint
+	maxHistory uint
+
+	// TXInfo on the transaction locking this ref.
+	tinfo *TxInfo
+
+	id uint64
 }
 
+// id generator for Refs
+var refIds = new(IdGenerator)
+
+// Factories
+
+func NewRef(val interface{}) *Ref {
+	return &Ref{
+		id:         refIds.Next(),
+		maxHistory: 10,
+		tvals:      newTval(val, 0)}
+}
+
+// Getting values
+
+// Gets the value for the reference in the transaction
 func (r *Ref) Deref(tx *Tx) interface{} {
-
+	if tx == nil {
+		return r.currentVal()
+	}
+	return tx.doGet(r)
 }
-        /// <summary>
-        /// Gets the (immutable) value the reference is holding.
-        /// </summary>
-        /// <returns>The value</returns>
-        public override object deref()
-        {
-            LockingTransaction t = LockingTransaction.GetRunning();
-            if (t == null)
-            {
-                object ret = currentVal();
-                //Console.WriteLine("Thr {0}, {1}: No-trans get => {2}", Thread.CurrentThread.ManagedThreadId,DebugStr(), ret);
-                return ret;
-            }
-            return t.DoGet(this);
-        }
 
-        object currentVal()
-        {
-            try
-            {
-                _lock.EnterReadLock();
-                if (_tvals != null)
-                    return _tvals.Val;
-                throw new InvalidOperationException(String.Format("{0} is unbound.", ToString()));
-            }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
-        }
+func (r *Ref) currentVal() interface{} {
+	r.enterReadLock()
+	defer r.exitReadLock()
+	if r.tvals == nil {
+		panic(fmt.Errorf("%v is unbound", r))
+	}
+	return r.tvals.val
+}
 
-/*
-        #region Nested classes
+// history count, limits
 
-        /// <summary>
-        /// Represents the value of reference on a thread at particular point in time.
-        /// </summary>
-        public sealed class TVal
-        {
-            #region Data
- 
-            /// The value.
-            object _val;
+func (r *Ref) SetMaxHistory(m uint) *Ref {
+	r.maxHistory = m
+	return r
+}
 
-            /// The transaction commit/read point at which this value was set.
-            long _point;
+func (r *Ref) SetMinHistory(m uint) *Ref {
+	r.minHistory = m
+	return r
+}
 
+func (r *Ref) MinHistory() uint {
+	return r.minHistory
+}
 
-            /// The prior <see cref="TVal">TVal</see>.
-            /// <remarks>Implements a doubly-linked circular list.</remarks>
-            TVal _prior;
+func (r *Ref) MaxHistory() uint {
+	return r.maxHistory
+}
 
-            /// The next  <see cref="TVal">TVal</see>.
-            /// <remarks>Implements a doubly-linked circular list.</remarks>
-            TVal _next;
+func (r *Ref) HistoryCount() uint {
+	r.enterWriteLock()
+	defer r.exitWriteLock()
+	return r.calcHistoryCount()
+}
 
-            #endregion
+func (r *Ref) calcHistoryCount() uint {
+	if r.tvals == nil {
+		return 0
+	}
 
-            #region Ctors
+	count := uint(0)
+	for tv := r.tvals.next; tv != r.tvals; tv = tv.next {
+		count = count + 1
+	}
+	return count
+}
 
-            /// Construct a TVal, linked to a previous TVal.
-            public TVal(object val, long point, int msecs, TVal prior)
-            {
-                _val = val;
-                _point = point;
-                _prior = prior;
-                _next = _prior._next;
-                _prior._next = this;
-                _next._prior = this;
-            }
+// Lock management
 
-            /// Construct a TVal, linked to itself.
-            public TVal(object val, long point, int msecs)
-            {
-                _val = val;
-                _point = point;
-                _prior = this;
-                _next = this;
-            }
+func (r *Ref) enterReadLock() {
+	r.lock.RLock()
+}
 
-            #endregion
+func (r *Ref) exitReadLock() {
+	r.lock.RUnlock()
+}
 
-            #region other
+func (r *Ref) enterWriteLock() {
+	r.lock.Lock()
+}
 
-            /// Set the value/point.
-            public void SetValue(object val, long point, int msecs)
-            {
-                _val = val;
-                _point = point;
-            }
+func (r *Ref) exitWriteLock() {
+	r.lock.Unlock()
+}
 
-            #endregion
-        }
+func (r *Ref) tryEnterWriteLock(dur time.Duration) bool {
+	lockChan := make(chan bool, 1)
+	toChan := time.After(dur)
+	timedOut := int32(0)
 
-        #endregion
+	go func() {
+		r.lock.Lock()
+		lockChan <- true
+		defer func() {
+			if atomic.LoadInt32(&timedOut) == 1 {
+				r.lock.Unlock()
+			}
+		}()
+	}()
 
-        #region Data
+	select {
+	case <-toChan:
+		atomic.StoreInt32(&timedOut, 1)
+		return false
+	case <-lockChan:
+		return true
+	}
+}
 
-        /// Values at points in time for this reference.
-        TVal _tvals;
+// Fault management
 
-        /// Number of faults for the reference.
-        readonly AtomicInteger _faults;
+// Add to the fault count
+func (r *Ref) addFault() {
+	atomic.AddUint32(&r.faults, 1)
+}
 
-        /// Reader/writer lock for the reference.
-        readonly ReaderWriterLockSlim _lock;
+func (r *Ref) getFault() uint32 {
+	return atomic.LoadUint32(&r.faults)
+}
 
-        /// Info on the transaction locking this ref.
-        LockingTransaction.Info _tinfo;
+func (r *Ref) setFault(v uint32) {
+	atomic.StoreUint32(&r.faults, v)
+}
 
-        /// An id uniquely identifying this reference.
-        readonly long _id;
+// Value management
 
+// Get the read/commit point associated with the current value
+func (r *Ref) currValPoint() uint64 {
+	if r.tvals == nil {
+		return 0
+	}
+	return r.tvals.point
+}
 
-        volatile int _minHistory = 0;
-        volatile int _maxHistory = 10;
-        // Same for min
-        public Ref setMaxHistory(int maxHistory)
-        {
-            _maxHistory = maxHistory;
-            return this;
-        }
+// Get current value (else null if no current value)
+func (r *Ref) tryGetVal() interface{} {
+	if r.tvals == nil {
+		return nil
+	}
+	return r.tvals.val
+}
 
-        /// Used to generate unique ids.
-        static readonly AtomicLong _ids = new AtomicLong();
+// Set the value
+func (r *Ref) setValue(val interface{}, commitPoint uint64) {
+	hcnt := r.calcHistoryCount()
 
-        bool _disposed = false;
+	if r.tvals == nil {
+		r.tvals = newTval(val, commitPoint)
+	} else if (r.getFault() > 0 && hcnt < r.maxHistory) || hcnt < r.minHistory {
+		r.tvals = newTvalPrior(val, commitPoint, r.tvals)
+		r.setFault(0)
+	} else {
+		r.tvals = r.tvals.next
+		r.tvals.setValue(val, commitPoint)
+	}
+}
 
-        #endregion
+// public interface for Ref
 
-        #region C-tors & factory methods
+func (r *Ref) Set(tx *Tx, val interface{}) interface{} {
+	return tx.doSet(r, val)
+}
 
-        ///  Construct a ref with given initial value.
-        public Ref(object initVal)
-            : this(initVal, null)
-        {
-        }
-        ///  Construct a ref with given initial value and metadata.
-        public Ref(object initval, IPersistentMap meta)
-            : base(meta)
-        {
-            _id = _ids.getAndIncrement();
-            _faults = new AtomicInteger();
-            _lock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-            _tvals = new TVal(initval, 0, System.Environment.TickCount);
-        }
+func (r *Ref) Commute(tx *Tx, fn CFn, args ...interface{}) interface{} {
+	return tx.doCommute(r, fn, args)
+}
 
-        #endregion
+func (r *Ref) Alter(tx *Tx, fn CFn, args ...interface{}) interface{} {
+	return tx.doSet(r, fn(tx.doGet(r), args))
+}
 
-        #region History counts
-
-        public int getHistoryCount()
-        {
-            try
-            {
-                EnterWriteLock();
-                return HistCount();
-            }
-            finally
-            {
-                ExitWriteLock();
-            }
-        }
-
-        int HistCount()
-        {
-            if (_tvals == null)
-                return 0;
-            else
-            {
-                int count = 0;
-                for (TVal tv = _tvals.Next; tv != _tvals; tv = tv.Next)
-                    count++;
-                return count;
-            }
-        }
-
-        #endregion       
-
-        #region IDeref Members
-
-        /// Gets the (immutable) value the reference is holding.
-        public override object deref()
-        {
-            LockingTransaction t = LockingTransaction.GetRunning();
-            if (t == null)
-            {
-                object ret = currentVal();
-                //Console.WriteLine("Thr {0}, {1}: No-trans get => {2}", Thread.CurrentThread.ManagedThreadId,DebugStr(), ret);
-                return ret;
-            }
-            return t.DoGet(this);
-        }
-
-        object currentVal()
-        {
-            try
-            {
-                _lock.EnterReadLock();
-                if (_tvals != null)
-                    return _tvals.Val;
-                throw new InvalidOperationException(String.Format("{0} is unbound.", ToString()));
-            }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
-        }
-
-        #endregion
-
-        #region  Interface for LockingTransaction
-
-        /// Get the read lock.
-        internal void EnterReadLock()
-        {
-            _lock.EnterReadLock();
-        }
-
-        /// Release the read lock.
-        internal void ExitReadLock()
-        {
-            _lock.ExitReadLock();
-        }
-
-        /// Get the write lock.
-        internal void EnterWriteLock()
-        {
-            _lock.EnterWriteLock();
-        }
-
-
-        /// Get the write lock.
-        internal bool TryEnterWriteLock(int msecTimeout)
-        {
-            return _lock.TryEnterWriteLock(msecTimeout);
-        }
-
-        /// Release the write lock.
-        internal void ExitWriteLock()
-        {
-            _lock.ExitWriteLock();
-        }
-
-        /// Add to the fault count.
-        public void AddFault()
-        {
-            _faults.incrementAndGet();
-        }
-
-        /// Get the read/commit point associated with the current value.
-        public long CurrentValPoint()
-        {
-            return _tvals != null ? _tvals.Point : -1;
-        }
-
-        /// Try to get the value (else null).
-        public object TryGetVal()
-        {
-            return _tvals == null ? null : _tvals.Val;
-        }
-
-        /// Set the value.
-        internal void SetValue(object val, long commitPoint, int msecs)
-        {
-            int hcount = HistCount();
-
-            if (_tvals == null)
-                _tvals = new TVal(val, commitPoint, msecs);
-            else if ( (_faults.get() > 0 && hcount < _maxHistory) || hcount < _minHistory )
-            {
-                _tvals = new TVal(val, commitPoint, msecs, _tvals);
-                _faults.set(0);
-            }
-            else
-            {
-                _tvals = _tvals.Next;
-                _tvals.SetValue(val, commitPoint, msecs);
-            }
-        }
-
-        #endregion
-
-        #region Ref operations
-
-        /// Set the value (must be in a transaction).
-        public object set(object val)
-        {
-            return LockingTransaction.GetEx().DoSet(this, val);
-        }
-
-        /// Apply a commute to the reference. (Must be in a transaction.)
-        public object commute(IFn fn, ISeq args)
-        {
-            return LockingTransaction.GetEx().DoCommute(this, fn, args);
-        }
-
-        /// Change to a computed value.
-        public object alter(IFn fn, ISeq args)
-        {
-            LockingTransaction t = LockingTransaction.GetEx();
-            return t.DoSet(this, fn.applyTo(RT.cons(t.DoGet(this), args)));
-        }
-
-        /// Touch the reference.  (Add to the tracking list in the current transaction.)
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "touch")]
-        public void touch()
-        {
-            LockingTransaction.GetEx().DoEnsure(this);
-        }
-
-        #endregion
-
-        #region object overrides
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(this, obj))
-                return true;
-
-            Ref r = obj as Ref;
-            if (r == null)
-                return false;
-
-            return _id == r._id;
-        }
-
-        public override int GetHashCode()
-        {
-            return _id.GetHashCode();
-        }
-        #endregion
-
-*/
+func (r *Ref) Touch(tx *Tx) {
+	tx.doEnsure(r)
+}

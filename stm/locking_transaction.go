@@ -1,48 +1,53 @@
-// Copyright 2012 David Miller. All rights reserved.
+// Copyright 2014 David Miller. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package stm
 
 import (
+	"errors"
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 const (
-	// RetryLimit is the number of times to retry a transaction in case of a conflict.
-	RetryLimit = 10000
+	// retryLimit is the number of times to retry a transaction in case of a conflict.
+	retryLimit = 10000
 
 	// LockWaitMsecs is the number of milliseconds to wait for a lock
-	LockWaitMsecs = 100
+	lockWaitMsecs = 100
 
 	// BargeWaitNanos is the number of nanoseconds old another transaction must be before we 'barge' it.
-	BargeWaitNanos = 10*1000000
+	bargeWaitNanos = 10 * 1000000
 )
 
 const (
 	// RUNNING transaction state
-	RUNNING = iota
-	COMMITTING
-	RETRY
-	KILLED
-	COMMITTED
+	txRunning uint32 = iota
+	txCommitting
+	txRetry
+	txKilled
+	txCommitted
 )
 
-// Info represents the current state of an STM transaction
-type Info struct {
-	status int8
-	startPoint int64
-	latch CountDownLatch
+// TxInfo represents the current state of an STM transaction
+type TxInfo struct {
+	status     uint32
+	startPoint uint64
+	latch      *CountDownLatch
+	lock       sync.Mutex
 }
 
-func newInfo(status int8, startPoint int64) *Info {
-	return &Info{status:status,startPoint:startPoint,latch:NewCountDownLatch(1)}
+func newTxInfo(status uint32, startPoint uint64) *TxInfo {
+	return &TxInfo{status: status, startPoint: startPoint, latch: NewCountDownLatch(1)}
 }
 
-func (info *Info) isRunning() bool {
-	s = info.status
-	return s == RUNNING || s == COMMITTING
+func (info *TxInfo) isRunning() bool {
+	s := atomic.LoadUint32(&info.status)
+	return s == txRunning || s == txCommitting
 }
-
 
 // lastPoint is the current point
 // Used to provide a total ordering on transactions
@@ -50,692 +55,406 @@ func (info *Info) isRunning() bool {
 // where there are conflicts.
 // Transactions consume a point for init, for each retry,
 // and on commit if writing
-var lastPoint int64
+var lastPoint = new(IdGenerator)
 
+// A CFn is a function suitable for calling as a commute on a ref
+type CFn func(interface{}, []interface{}) interface{}
 
+// A CFnCall is a pending call of a function on arguments.
+// Used to store commute calls on refs.
+type CFnCall struct {
+	fn   CFn
+	args []interface{}
+}
+
+// A TxFn is a function suitable for calling in a transaction
+type TxFn func(*Tx) interface{}
+
+// Cached error to use in panics to signal a retry
+var retryError error = errors.New("Retry")
 
 // Tx provides STM transaction semantics for Agents and Refs
 type Tx struct {
 	// The state of the transaction
-	info *Info
+	info *TxInfo
 
 	// The point at the start of the current retry (or first try).
-	readPoint int64
+	readPoint uint64
 
 	// The point at the start of the transaction.
-	startPoint int64
+	startPoint uint64
 
-	// The system ticks at the start of the transaction
-	startTime int64
-
-    /// <summary>
-    /// Cached retry exception.
-    /// </summary>
-    //readonly RetryEx _retryex = new RetryEx();
+	// The system time at the start of the transaction
+	startTime time.Time
 
 	// Agent actions pending on this thread
-	actions []Action
+	//actions []Action
 
 	// Ref assignments made in this transaction (both sets and commutes)
-	vals map[Ref] interface{}
+	vals map[*Ref]interface{}
 
 	// Refs that have been set in this transaction
-	sets map[Ref] bool
+	sets map[*Ref]bool
 
 	// Ref commutes that have been made in this transaction
-	commutes map[Ref] []CFn
+	commutes map[*Ref][]*CFnCall
 
 	// Refs holding read locks
-	ensures map[Ref] bool
+	ensures map[*Ref]bool
 }
 
+func NewTx() *Tx {
+	return &Tx{}
+}
 
 // Point manipulation
 
 // Get a new read point value
-func (tx *StmTx) getReadPoint() {
-	tx.readPoint = Atomic.AddInt64(&lastPoint,1)
+func (tx *Tx) getReadPoint() {
+	tx.readPoint = lastPoint.Next()
 }
 
-func(tx *StmTx) getCommitPoint() int64 {
-	return Atomic.AddInt64(&lastPoint,1)
+func getCommitPoint() uint64 {
+	return lastPoint.Next()
 }
-
 
 // Actions
 
+// Stop this transaction
+func (tx *Tx) Stop(s uint32) {
+	if tx.info == nil {
+		return
+	}
 
+	tx.info.setStatus(s, true)
+	tx.info = nil
+	tx.vals = make(map[*Ref]interface{})
+	tx.sets = make(map[*Ref]bool)
+	tx.commutes = make(map[*Ref][]*CFnCall)
+	// Java commented out: _actions.Clear();
+	// Note that tx.ensured is not cleared
+
+}
+
+func (t *TxInfo) setStatus(s uint32, countDown bool) {
+
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	atomic.StoreUint32(&t.status, s)
+	if countDown {
+		t.latch.CountDown()
+	}
+}
+
+func tryWriteLock(r *Ref) {
+	if !r.tryEnterWriteLock(lockWaitMsecs) {
+		panic(retryError)
+	}
+}
+
+func (tx *Tx) releaseIfEnsured(r *Ref) {
+	if _, ok := tx.ensures[r]; ok {
+		delete(tx.ensures, r)
+		r.exitReadLock()
+	}
+}
+
+func (tx *Tx) blockAndBail(refinfo *TxInfo) interface{} {
+	// stop prior to blocking
+	tx.Stop(txRetry)
+	refinfo.latch.Await(lockWaitMsecs)
+	panic(retryError)
+}
+
+func (tx *Tx) lockRef(r *Ref) interface{} {
+	// can't upgrade a read lock, so release it
+	// TODO: Determine if this is true
+	tx.releaseIfEnsured(r)
+
+	locked := false
+	defer func() {
+		if locked {
+			r.exitWriteLock()
+		}
+	}()
+
+	tryWriteLock(r)
+	locked = true
+
+	if r.currValPoint() > tx.readPoint {
+		panic(retryError)
+	}
+
+	refinfo := r.tinfo
+
+	// write lock conflict
+	if refinfo != nil && refinfo != tx.info && refinfo.isRunning() {
+		if !tx.barge(refinfo) {
+			r.exitWriteLock()
+			locked = false
+			return tx.blockAndBail(refinfo)
+		}
+	}
+
+	r.tinfo = tx.info
+	return r.tryGetVal()
+}
+
+// Barging
+
+// Determine if sufficient clock time has elapsed to barge another transaction
+// Returns true if enough time elapsed, false otherwise
+func (tx *Tx) bargeTimeElapsed() bool {
+	return time.Now().UnixNano()-tx.startTime.UnixNano() > bargeWaitNanos
+}
+
+// Try to barge a conflicting transation
+func (tx *Tx) barge(refinfo *TxInfo) bool {
+	barged := false
+
+	// if this transation is older, try to abort the other
+	if tx.bargeTimeElapsed() && tx.startPoint < refinfo.startPoint {
+		barged = atomic.CompareAndSwapUint32(&refinfo.status, txRunning, txKilled)
+		if barged {
+			refinfo.latch.CountDown()
+		}
+	}
+
+	return barged
+}
+
+// Start a transaction and invoke a function, passing it the transaction.
+// Returns the value computed by the function.
+func RunInTransaction(fn TxFn) (interface{}, error) {
+	tx := NewTx()
+	return tx.Run(fn)
+}
+
+func (tx *Tx) Run(fn TxFn) (interface{}, error) {
+
+	done := false
+	var ret interface{}
+	locked := make([]*Ref, 10)
+	// notify := make([]*Notify)
+
+	defer func() {
+		for k := len(locked) - 1; k >= 0; k-- {
+			locked[k].exitWriteLock()
+		}
+	}()
+
+	locked = nil
+	for r, _ := range tx.ensures {
+		r.exitReadLock()
+	}
+	tx.ensures = nil
+	if done {
+		tx.Stop(txCommitted)
+	} else {
+		tx.Stop(txRetry)
+	}
+	if done {
+		// do notifies and agent actions, if we every implement
+	}
+
+	for i := 0; !done && i < retryLimit; i++ {
+
+		tx.getReadPoint()
+		if i == 0 {
+			tx.startPoint = tx.readPoint
+			tx.startTime = time.Now()
+		}
+
+		tx.info = newTxInfo(txRunning, tx.startPoint)
+		ret = fn(tx)
+
+		// make sure no one has killed us before this point, and can't from now on
+		if atomic.CompareAndSwapUint32(&tx.info.status, txRunning, txCommitting) {
+			for r, calls := range tx.commutes {
+				if _, ok := tx.sets[r]; ok {
+					continue
+				}
+				_, wasEnsured := tx.ensures[r]
+				tx.releaseIfEnsured(r)
+				tryWriteLock(r)
+				locked = append(locked, r)
+				if wasEnsured && r.currValPoint() > tx.readPoint {
+					panic(retryError)
+				}
+
+				refInfo := r.tinfo
+				if refInfo != nil && refInfo != tx.info && refInfo.isRunning() {
+					if !tx.barge(refInfo) {
+						panic(retryError)
+					}
+				}
+				val := r.tryGetVal()
+				tx.vals[r] = val
+				for _, call := range calls {
+					tx.vals[r] = call.fn(tx.vals[r], call.args)
+				}
+			}
+
+			for r, _ := range tx.sets {
+				tryWriteLock(r)
+				locked = append(locked, r)
+			}
+
+			// if we do validations for refs, it goes here
+
+			// at this point,
+			//    all values are calculated,
+			//    all refs to be written are locked
+			//    no more client code to be called
+			commitPoint := getCommitPoint()
+			for r, newV := range tx.vals {
+				//oldV := r.tryGetVal()
+				r.setValue(newV, commitPoint)
+				// todo: call notifies
+			}
+			done = true
+			atomic.StoreUint32(&tx.info.status, txCommitted)
+		}
+
+		if done {
+			return ret, nil
+		}
+
+	}
+	return nil, errors.New("Transaction failed after reaching retry limit")
+}
+
+// Get the value of a Ref (most recently sent in this transaction or value prior to entering)
+func (tx *Tx) doGet(r *Ref) interface{} {
+	if !tx.info.isRunning() {
+		panic(retryError)
+	}
+	if v, ok := tx.vals[r]; ok {
+		return v
+	}
+	r.enterReadLock()
+	defer r.exitReadLock()
+	if r.tvals == nil {
+		panic(fmt.Errorf("%v is not bound", r))
+	}
+	ver := r.tvals
+	for {
+		if ver.point <= tx.readPoint {
+			return ver.val
+		}
+		ver = ver.prior
+		if ver == r.tvals {
+			break
+		}
+	}
+
+	// no version of val precedes the read point
+	r.addFault()
+	panic(retryError)
+}
+
+// Set the value of a Ref inside the transaction
+func (tx *Tx) doSet(r *Ref, v interface{}) interface{} {
+	if !tx.info.isRunning() {
+		panic(retryError)
+	}
+	if _, ok := tx.commutes[r]; ok {
+		panic(errors.New("Can't set after commute"))
+	}
+	if _, ok := tx.sets[r]; !ok {
+		tx.sets[r] = true
+		tx.lockRef(r)
+	}
+	tx.vals[r] = v
+	return v
+}
+
+func (tx *Tx) doEnsure(r *Ref) {
+	if !tx.info.isRunning() {
+		panic(retryError)
+	}
+	if _, ok := tx.ensures[r]; ok {
+		return
+	}
+	r.enterReadLock()
+
+	// someone completed a write after our shapshot
+	if r.currValPoint() > tx.readPoint {
+		r.exitReadLock()
+		panic(retryError)
+	}
+
+	refInfo := r.tinfo
+
+	// writer exists
+	if refInfo != nil && refInfo.isRunning() {
+		r.exitReadLock()
+		if refInfo != tx.info {
+			// not us, ensure is doomed
+			tx.blockAndBail(refInfo)
+		}
+	} else {
+		tx.ensures[r] = true
+	}
+}
+
+func (tx *Tx) GetAndStoreRefVal(r *Ref) {
+	if _, ok := tx.vals[r]; !ok {
+		var val interface{}
+		r.enterReadLock()
+		defer r.exitReadLock()
+		val = r.tryGetVal()
+		tx.vals[r] = val
+	}
+}
+
+// Post a commute on a ref into this transaction
+func (tx *Tx) doCommute(r *Ref, fn CFn, args []interface{}) interface{} {
+	if !tx.info.isRunning() {
+		panic(retryError)
+	}
+	tx.GetAndStoreRefVal(r)
+
+	calls, ok := tx.commutes[r]
+	if !ok {
+		calls = make([]*CFnCall, 5)
+	}
+	calls = append(calls, &CFnCall{fn: fn, args: args})
+	tx.commutes[r] = calls
+	ret := fn(tx.vals[r], args)
+	tx.vals[r] = ret
+
+	return ret
+}
+
+// Kill this transaction
+func (tx *Tx) Abort() {
+	tx.Stop(txKilled)
+	panic(errors.New("Transaction aborted")) // handle some other way?
+}
 
 /*
 
-        #region Actions
 
-        /// <summary>
-        /// Stop this transaction.
-        /// </summary>
-        /// <param name="status">The new status.</param>
-        void Stop(int status)
-        {
-            if (_info != null)
-            {
-                lock (_info)
-                {
-                    _info.Status.set(status);
-                    _info.Latch.CountDown();
-                }
-                _info = null;
-                _vals.Clear();
-                _sets.Clear();
-                _commutes.Clear();
-                // Java commented out: _actions.Clear();
-            }
-        }
 
-        void TryWriteLock(Ref r)
-        {
-            try
-            {
-                if (!r.TryEnterWriteLock(LockWaitMsecs))
-                    throw _retryex;
-            }
-            catch (ThreadInterruptedException )
-            {
-                throw _retryex;
-            }
-        }
 
-        void ReleaseIfEnsured(Ref r)
-        {
-            if (_ensures.Contains(r))
-            {
-                _ensures.Remove(r);
-                r.ExitReadLock();
-            }
-        }
 
 
-        object BlockAndBail(Info refinfo)
-        {
-            //stop prior to blocking
-            Stop(RETRY);
-            try
-            {
-                refinfo.Latch.Await(LockWaitMsecs);
-            }
-            catch (ThreadInterruptedException)
-            {
-                //ignore
-            }
-            throw _retryex;
-        }
 
 
-        /// <summary>
-        /// Lock a ref.
-        /// </summary>
-        /// <param name="r">The ref to lock.</param>
-        /// <returns>The most recent value of the ref.</returns>
-        object Lock(Ref r)
-        {
-            // can't upgrade read lock, so release it.
-            ReleaseIfEnsured(r);
+   class Notify
+   {
+       public readonly Ref _ref;
+       public readonly object _oldval;
+       public readonly object _newval;
 
-            bool unlocked = true;
-            try
-            {
-                TryWriteLock(r);
-                unlocked = false;
+       public Notify(Ref r, object oldval, object newval)
+       {
+           _ref = r;
+           _oldval = oldval;
+           _newval = newval;
+       }
+   }
 
-                if (r.CurrentValPoint() > _readPoint)
-                    throw _retryex;
 
-                Info refinfo = r.TInfo;
-
-                // write lock conflict
-                if (refinfo != null && refinfo != _info && refinfo.IsRunning)
-                {
-                    if (!Barge(refinfo))
-                    {
-                        r.ExitWriteLock();
-                        unlocked = true;
-                        return BlockAndBail(refinfo);
-                    }
-                }
-
-                r.TInfo = _info;
-                return r.TryGetVal();
-            }
-            finally
-            {
-                if (!unlocked)
-                {
-                    r.ExitWriteLock();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Kill this transaction.
-        /// </summary>
-        void Abort()
-        {
-            Stop(KILLED);
-            throw new AbortException();
-        }
-
-        /// <summary>
-        /// Determine if sufficient clock time has elapsed to barge another transaction.
-        /// </summary>
-        /// <returns><value>true</value> if enough time has elapsed; <value>false</value> otherwise.</returns>
-        private bool BargeTimeElapsed()
-        {
-            return Environment.TickCount - _startTime > BargeWaitTicks;
-        }
-
-        /// <summary>
-        /// Try to barge a conflicting transaction.
-        /// </summary>7
-        /// <param name="refinfo">The info on the other transaction.</param>
-        /// <returns><value>true</value> if we killed the other transaction; <value>false</value> otherwise.</returns>
-        private bool Barge(Info refinfo)
-        {
-            bool barged = false;
-            // if this transaction is older
-            //   try to abort the other
-            if (BargeTimeElapsed() && _startPoint < refinfo.StartPoint)
-            {
-                barged = refinfo.Status.compareAndSet(RUNNING, KILLED);
-                if (barged)
-                    refinfo.Latch.CountDown();
-            }
-            return barged;
-        }
-
-        /// <summary>
-        /// Get the transaction running on this thread (throw exception if no transaction). 
-        /// </summary>
-        /// <returns>The running transaction.</returns>
-        public static LockingTransaction GetEx()
-        {
-            LockingTransaction t = _transaction;
-            if (t == null || t._info == null)
-                throw new InvalidOperationException("No transaction running");
-            return t;
-        }
-
-        /// <summary>
-        /// Get the transaction running on this thread (or null if no transaction).
-        /// </summary>
-        /// <returns>The running transaction if there is one, else <value>null</value>.</returns>
-        static internal LockingTransaction GetRunning()
-        {
-            LockingTransaction t = _transaction;
-            if (t == null || t._info == null)
-                return null;
-            return t;
-        }
-
-        /// <summary>
-        /// Is there a transaction running on this thread?
-        /// </summary>
-        /// <returns><value>true</value> if there is a transaction running on this thread; <value>false</value> otherwise.</returns>
-        /// <remarks>Initial lowercase in name for core.clj compatibility.</remarks>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly")]
-        public static bool isRunning()
-        {
-            return GetRunning() != null;
-        }
-
-        /// <summary>
-        /// Invoke a function in a transaction
-        /// </summary>
-        /// <param name="fn">The function to invoke.</param>
-        /// <returns>The value computed by the function.</returns>
-        /// <remarks>Initial lowercase in name for core.clj compatibility.</remarks>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly")]
-        public static object runInTransaction(IFn fn)
-        {
-            // TODO: This can be called on something more general than  an IFn.
-            // We can could define a delegate for this, probably use ThreadStartDelegate.
-            // Should still have a version that takes IFn.
-            LockingTransaction t = _transaction;
-            if (t == null)
-                _transaction = t = new LockingTransaction();
-
-            if (t._info != null)
-                return fn.invoke();
-
-            return t.Run(fn);
-        }
-
-        class Notify
-        {
-            public readonly Ref _ref;
-            public readonly object _oldval;
-            public readonly object _newval;
-
-            public Notify(Ref r, object oldval, object newval)
-            {
-                _ref = r;
-                _oldval = oldval;
-                _newval = newval;
-            }
-        }
-
-
-        /// <summary>
-        /// Start a transaction and invoke a function.
-        /// </summary>
-        /// <param name="fn">The function to invoke.</param>
-        /// <returns>The value computed by the function.</returns>
-        object Run(IFn fn)
-        {
-            // TODO: Define an overload called on ThreadStartDelegate or something equivalent.
-
-            bool done = false;
-            object ret = null;
-            List<Ref> locked = new List<Ref>();
-            List<Notify> notify = new List<Notify>();
-
-            for (int i = 0; !done && i < RetryLimit; i++)
-            {
-                try
-                {
-                    GetReadPoint();
-                    if (i == 0)
-                    {
-                        _startPoint = _readPoint;
-                        _startTime = Environment.TickCount;
-                    }
-
-                    _info = new Info(RUNNING, _startPoint);
-                    ret = fn.invoke();
-
-                    // make sure no one has killed us before this point,
-                    // and can't from now on
-                    if (_info.Status.compareAndSet(RUNNING, COMMITTING))
-                    {
-                        foreach (KeyValuePair<Ref, List<CFn>> pair in _commutes)
-                        {
-                            Ref r = pair.Key;
-                            if (_sets.Contains(r))
-                                continue;
-
-                            bool wasEnsured = _ensures.Contains(r);
-                            // can't upgrade read lock, so release
-                            ReleaseIfEnsured(r);
-                            TryWriteLock(r);
-                            locked.Add(r);
-
-                            if (wasEnsured && r.CurrentValPoint() > _readPoint )
-                                throw _retryex;
-
-                            Info refinfo = r.TInfo;
-                            if ( refinfo != null && refinfo != _info && refinfo.IsRunning)
-                            {
-                                if (!Barge(refinfo))
-                                {
-                                    throw _retryex;
-                                }
-                            }
-                            object val = r.TryGetVal();
-                            _vals[r] = val;
-                            foreach (CFn f in pair.Value)
-                                _vals[r] = f.Fn.applyTo(RT.cons(_vals[r], f.Args));
-                        }
-                        foreach (Ref r in _sets)
-                        {
-                            TryWriteLock(r);
-                            locked.Add(r);
-                        }
-                        // validate and enqueue notifications
-                        foreach (KeyValuePair<Ref, object> pair in _vals)
-                        {
-                            Ref r = pair.Key;
-                            r.Validate(pair.Value);
-                        }
-
-                        // at this point, all values calced, all refs to be written locked
-                        // no more client code to be called
-                        int msecs = System.Environment.TickCount;
-                        long commitPoint = GetCommitPoint();
-                        foreach (KeyValuePair<Ref, object> pair in _vals)
-                        {
-                            Ref r = pair.Key;
-                            object oldval = r.TryGetVal();
-                            object newval = pair.Value;
-                          
-                            r.SetValue(newval, commitPoint, msecs);
-                            if (r.getWatches().count() > 0)
-                                notify.Add(new Notify(r, oldval, newval));
-                        }
-
-                        done = true;
-                        _info.Status.set(COMMITTED);
-                    }
-                }
-                catch (RetryEx)
-                {
-                    // eat this so we retry rather than fall out
-                }
-                catch (Exception ex)
-                {
-                    if (ContainsNestedRetryEx(ex))
-                    {
-                        // Wrapped exception, eat it.
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                finally
-                {
-                    for (int k = locked.Count - 1; k >= 0; --k)
-                    {
-                        locked[k].ExitWriteLock();
-                    }
-                    locked.Clear();
-                    foreach (Ref r in _ensures)
-                        r.ExitReadLock();
-                    _ensures.Clear();
-                    Stop(done ? COMMITTED : RETRY);
-                    try
-                    {
-                        if (done) // re-dispatch out of transaction
-                        {
-                            foreach (Notify n in notify)
-                            {
-                                n._ref.NotifyWatches(n._oldval, n._newval);
-                            }
-                            foreach (Agent.Action action in _actions)
-                            {
-                                Agent.DispatchAction(action);
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        notify.Clear();
-                        _actions.Clear();
-                    }
-                }
-            }
-            if (!done)
-                throw new InvalidOperationException("Transaction failed after reaching retry limit");
-            return ret;
-        }
-
-        /// <summary>
-        /// Determine if the exception wraps a <see cref="RetryEx">RetryEx</see> at some level.
-        /// </summary>
-        /// <param name="ex">The exception to test.</param>
-        /// <returns><value>true</value> if there is a nested  <see cref="RetryEx">RetryEx</see>; <value>false</value> otherwise.</returns>
-        /// <remarks>Needed because sometimes our retry exceptions get wrapped.  You do not want to know how long it took to track down this problem.</remarks>
-        private static bool ContainsNestedRetryEx(Exception ex)
-        {
-            for (Exception e = ex; e != null; e = e.InnerException)
-                if (e is RetryEx)
-                    return true;
-            return false;
-        }
-
-        /// <summary>
-        /// Add an agent action sent during the transaction to a queue.
-        /// </summary>
-        /// <param name="action">The action that was sent.</param>
-        internal void Enqueue(Agent.Action action)
-        {
-            _actions.Add(action);
-        }
-
-        /// <summary>
-        /// Get the value of a ref most recently set in this transaction (or prior to entering).
-        /// </summary>
-        /// <param name="r"></param>
-        /// <param name="tvals"></param>
-        /// <returns>The value.</returns>
-        internal object DoGet(Ref r)
-        {
-            if (!_info.IsRunning)
-                throw _retryex;
-            if (_vals.ContainsKey(r))
-            {
-                return _vals[r];
-            }
-            try
-            {
-                r.EnterReadLock();
-                if (r.TVals == null)
-                    throw new InvalidOperationException(r.ToString() + " is not bound.");
-                Ref.TVal ver = r.TVals;
-                do
-                {
-                    if (ver.Point <= _readPoint)
-                    {
-                        return ver.Val;
-                    }
-                } while ((ver = ver.Prior) != r.TVals);
-            }
-            finally
-            {
-                r.ExitReadLock();
-            }
-            // no version of val precedes the read point
-            r.AddFault();
-            throw _retryex;
-        }
-
-        /// <summary>
-        /// Set the value of a ref inside the transaction.
-        /// </summary>
-        /// <param name="r">The ref to set.</param>
-        /// <param name="val">The value.</param>
-        /// <returns>The value.</returns>
-        internal object DoSet(Ref r, object val)
-        {
-            if (!_info.IsRunning)
-                throw _retryex;
-            if (_commutes.ContainsKey(r))
-                throw new InvalidOperationException("Can't set after commute");
-            if (!_sets.Contains(r))
-            {
-                _sets.Add(r);
-                Lock(r);
-            }
-            _vals[r] = val;
-            return val;
-        }
-
-        /// <summary>
-        /// Touch a ref.  (Lock it.)
-        /// </summary>
-        /// <param name="r">The ref to touch.</param>
-        internal void DoEnsure(Ref r)
-        {
-            if (!_info.IsRunning)
-                throw _retryex;
-            if (_ensures.Contains(r))
-                return;
-
-            Lock(r);
-
-            // someone completed a write after our shapshot
-            if (r.CurrentValPoint() > _readPoint)
-            {
-                r.ExitReadLock();
-                throw _retryex;
-            }
-
-            Info refinfo = r.TInfo;
-
-            // writer exists
-            if (refinfo != null && refinfo.IsRunning)
-            {
-                r.ExitReadLock();
-                if (refinfo != _info)  // not us, ensure is doomed
-                    BlockAndBail(refinfo);
-            }
-            else
-                _ensures.Add(r);
-        }
-
-
-        /// <summary>
-        /// Post a commute on a ref in this transaction.
-        /// </summary>
-        /// <param name="r">The ref.</param>
-        /// <param name="fn">The commuting function.</param>
-        /// <param name="args">Additional arguments to the function.</param>
-        /// <returns>The computed value.</returns>
-        internal object DoCommute(Ref r, IFn fn, ISeq args)
-        {
-            if (!_info.IsRunning)
-                throw _retryex;
-            if (!_vals.ContainsKey(r))
-            {
-                object val = null;
-                try
-                {
-                    r.EnterReadLock();
-                    val = r.TryGetVal();
-                }
-                finally
-                {
-                    r.ExitReadLock();
-                }
-                _vals[r] = val;
-            }
-            List<CFn> fns;
-            if (! _commutes.TryGetValue(r, out fns))
-                _commutes[r] = fns = new List<CFn>();
-            fns.Add(new CFn(fn, args));
-            object ret = fn.applyTo(RT.cons(_vals[r], args));
-            _vals[r] = ret;
-
-            return ret;
-        }
-
-        #endregion
-    }
-}
-
-        /// <summary>
-        /// The transaction running on the current thread.  (Thread-local.)
-        /// </summary>
-        //[ThreadStatic]
-        //private static LockingTransaction _transaction;
-
-        #region supporting classes
-
-        /// <summary>
-        /// Pending call of a function on arguments.
-        /// </summary>
-        class CFn
-        {
-            #region Data
-
-            /// <summary>
-            ///  The function to be called.
-            /// </summary>
-            readonly IFn _fn;
-
-            /// <summary>
-            ///  The function to be called.
-            /// </summary>
-            public IFn Fn
-            {
-                get { return _fn; }
-            }
-
-            /// <summary>
-            /// The arguments to the function.
-            /// </summary>
-            readonly ISeq _args;
-
-            /// <summary>
-            /// The arguments to the function.
-            /// </summary>
-            public ISeq Args
-            {
-                get { return _args; }
-            }
-
-            #endregion
-
-            #region C-tors
-
-            /// <summary>
-            /// Construct one.
-            /// </summary>
-            /// <param name="fn">The function to invoke.</param>
-            /// <param name="args">The arguments to invoke the function on.</param>
-            public CFn(IFn fn, ISeq args)
-            {
-                _fn = fn;
-                _args = args;
-            }
-
-            #endregion
-        }
-        /// <summary>
-        /// Exception thrown when a retry is necessary.
-        /// </summary>
-        [Serializable]
-        public class RetryEx : Exception
-        {
-            #region C-tors
-
-            public RetryEx()
-            {
-            }
-
-            public RetryEx(String message)
-                : base(message)
-            {
-            }
-
-            public RetryEx(String message, Exception innerException)
-                : base(message, innerException)
-            {
-            }
-
-            protected RetryEx(SerializationInfo info, StreamingContext context)
-                : base(info, context)
-            {
-            }
-
-            #endregion
-
-        }
-
-        /// <summary>
-        /// Exception thrown when a transaction has been aborted.
-        /// </summary>
-        [Serializable]
-        public class AbortException : Exception
-        {
-            #region C-tors
-
-            public AbortException()
-            {
-            }
-
-            public AbortException(String message)
-                : base(message)
-            {
-            }
-
-            public AbortException(String message, Exception innerException)
-                : base(message, innerException)
-            {
-            }
-
-            protected AbortException(SerializationInfo info, StreamingContext context)
-                : base(info, context)
-            {
-            }
-
-            #endregion
-        }
 */
