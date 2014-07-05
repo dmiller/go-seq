@@ -8,6 +8,8 @@ import (
 	"github.com/dmiller/go-seq/iseq"
 )
 
+// Count computes the length of a sequence.
+// Handles nil, iseq.Counted, iseq.PCollection, and strings
 func Count(o interface{}) int {
 	if o == nil {
 		return 0
@@ -36,7 +38,8 @@ func Count(o interface{}) int {
 	panic("Count not supported on this type")
 }
 
-// Only call this on known non-empty
+// SeqCount computes the length of an iseq.Seq
+// Only call this on known non-empty iseq.Seq
 func SeqCount(s0 iseq.Seq) int {
 	i := 1 // if we are here, it is non-empty
 	for s := s0.Next(); s != nil; s, i = s.Next(), i+1 {

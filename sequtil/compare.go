@@ -9,6 +9,8 @@ import (
 	"reflect"
 )
 
+// DefaultCompareFn is a default function to use for comparisons.
+// Handles identity, nils, strings, numerics, and things implementing the iseq.Comparer interface.
 func DefaultCompareFn(k1 interface{}, k2 interface{}) int {
 	if k1 == k2 {
 		return 0
@@ -34,6 +36,7 @@ func DefaultCompareFn(k1 interface{}, k2 interface{}) int {
 	return -1
 }
 
+// IsComparableNumeric checks a value to see if it a numeric value amenable to comparison
 func IsComparableNumeric(v interface{}) bool {
 
 	switch v.(type) {
@@ -46,6 +49,7 @@ func IsComparableNumeric(v interface{}) bool {
 	return false
 }
 
+// CompareString compares two strings
 func CompareString(s string, x interface{}) int {
 	if s2, ok := x.(string); ok {
 		if s < s2 {
@@ -60,16 +64,16 @@ func CompareString(s string, x interface{}) int {
 	panic("can't compare string to non-string")
 }
 
+// CompareComparableNumeric compares two values, assumed to comparable numerics
 func CompareComparableNumeric(x1 interface{}, x2 interface{}) int {
-	// n1 should be numeric
+	// x1 should be numeric
 	switch x1 := x1.(type) {
 	case bool:
 		b1 := bool(x1)
 		if b1 {
 			return compareNumericInt(int64(1), x2)
-		} else {
-			return compareNumericInt(int64(0), x2)
 		}
+		return compareNumericInt(int64(0), x2)
 	case int, int8, int32, int64:
 		n1 := reflect.ValueOf(x1).Int()
 		return compareNumericInt(n1, x2)

@@ -4,7 +4,7 @@
 
 package sequtil
 
-// BitCount32 counts the on bits in an int32.
+// BitCount counts the on bits in an int32.
 // No multiplication, for those that care.
 // This algo is in a lot of places.
 // See, for example, http://aggregate.org/MAGIC/#Population%20Count%20(Ones%20Count)

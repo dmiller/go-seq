@@ -29,7 +29,7 @@ func Hash(v interface{}) uint32 {
 	return h
 }
 
-// Hash returns a hash code for an object.
+// HashE returns a hash code for an object.
 // Uses iseq.Hashable.Hash if the interface is implemented.
 // It special cases Go numbers and strings.
 // Returns an error if the object is not covered by these cases.
@@ -73,36 +73,41 @@ func IsHashable(v interface{}) bool {
 	return false
 }
 
+// HashSeq computes a hash for an iseq.Seq
 func HashSeq(s iseq.Seq) uint32 {
 	return HashOrdered(s)
 }
 
+// HashMap computes a hash for an iseq.PMap
 func HashMap(m iseq.PMap) uint32 {
 	return HashUnordered(m.Seq())
 }
 
+// HashOrdered computes a hash for an iseq.Seq, where order is important
 func HashOrdered(s iseq.Seq) uint32 {
 	n := int32(0)
 	hash := uint32(1)
 
 	for ; s != nil; s = s.Next() {
 		hash = 31*hash + Hash(s.First)
-		n += 1
+		n++
 	}
 	return murmur3.FinalizeCollHash(hash, n)
 }
 
+// HashUnordered computes a hash for an iseq.Seq, independent of order of elements
 func HashUnordered(s iseq.Seq) uint32 {
 	n := int32(0)
 	hash := uint32(0)
 
 	for ; s != nil; s = s.Next() {
 		hash += Hash(s.First)
-		n += 1
+		n++
 	}
 	return murmur3.FinalizeCollHash(hash, n)
 }
 
+// HashComplex128 computes a hash for a complex128
 func HashComplex128(c complex128) uint32 {
 	hash := murmur3.MixHash(
 		murmur3.HashUInt64(math.Float64bits(real(c))),

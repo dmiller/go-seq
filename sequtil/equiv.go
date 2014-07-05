@@ -64,7 +64,7 @@ func MapEquiv(m1 iseq.PMap, obj interface{}) bool {
 	return false
 }
 
-//  Returns true if the sequences are element-by-element equivalent.
+// SeqEquiv returns true if the sequences are element-by-element equivalent.
 func SeqEquiv(s1 iseq.Seq, s2 iseq.Seq) bool {
 	if s1 == s2 {
 		return true
