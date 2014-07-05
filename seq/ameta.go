@@ -13,6 +13,7 @@ type AMeta struct {
 	meta iseq.PMap
 }
 
+// Meta returns the metadata of the object
 func (o *AMeta) Meta() iseq.PMap {
 	return o.meta
 }

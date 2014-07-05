@@ -9,26 +9,31 @@ import (
 	"github.com/dmiller/go-seq/sequtil"
 )
 
+// A MapEntry represents a key/value pair. Implements iseq.MapEntry.
 type MapEntry struct {
 	key interface{}
 	val interface{}
 }
 
-func (me MapEntry) Key() interface{} {
-	return me.key
+// Key returns the key.
+func (m MapEntry) Key() interface{} {
+	return m.key
 }
 
-func (me MapEntry) Val() interface{} {
-	return me.val
+// Val returns the value.
+func (m MapEntry) Val() interface{} {
+	return m.val
 }
 
-func (me MapEntry) Equiv(o interface{}) bool {
+// Equiv returns true if its argument is an iseq.MapEntry with equivalent key and value.
+func (m MapEntry) Equiv(o interface{}) bool {
 	if you, ok := o.(iseq.MapEntry); ok {
-		return sequtil.Equiv(me.key, you.Key()) && sequtil.Equiv(me.val, you.Val())
+		return sequtil.Equiv(m.key, you.Key()) && sequtil.Equiv(m.val, you.Val())
 	}
 	return false
 }
 
-func (me MapEntry) Hash() uint32 {
-	return sequtil.Hash(me.key)
+// Hash computes a hash value (based only on the key)
+func (m MapEntry) Hash() uint32 {
+	return sequtil.Hash(m.key)
 }
