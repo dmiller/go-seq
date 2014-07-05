@@ -57,7 +57,7 @@ func CompareString(s string, x interface{}) int {
 		return 1
 	}
 
-	panic "can't compare string to non-string, non-iseq.Comparer"
+	panic "can't compare string to non-string"
 }
 
 func CompareComparableNumeric(x1 interface{}, x2 interface{}) int {
