@@ -17,10 +17,10 @@ const (
 	retryLimit = 10000
 
 	// LockWaitMsecs is the number of milliseconds to wait for a lock
-	lockWaitMsecs = 100
+	lockWaitMsecs = 100 * time.Millisecond
 
 	// BargeWaitNanos is the number of nanoseconds old another transaction must be before we 'barge' it.
-	bargeWaitNanos = 10 * 1000000
+	bargeWaitNanos = 10 * time.Nanosecond
 )
 
 const (
@@ -104,7 +104,13 @@ type Tx struct {
 }
 
 func NewTx() *Tx {
-	return &Tx{}
+	return &Tx{
+		info:     nil,
+		vals:     make(map[*Ref]interface{}),
+		sets:     make(map[*Ref]bool),
+		commutes: make(map[*Ref][]*CFnCall),
+		ensures:  make(map[*Ref]bool),
+	}
 }
 
 // Point manipulation
@@ -205,7 +211,7 @@ func (tx *Tx) lockRef(r *Ref) interface{} {
 // Determine if sufficient clock time has elapsed to barge another transaction
 // Returns true if enough time elapsed, false otherwise
 func (tx *Tx) bargeTimeElapsed() bool {
-	return time.Now().UnixNano()-tx.startTime.UnixNano() > bargeWaitNanos
+	return time.Now().Sub(tx.startTime) > bargeWaitNanos
 }
 
 // Try to barge a conflicting transation
