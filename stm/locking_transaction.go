@@ -58,7 +58,7 @@ func (info *TxInfo) isRunning() bool {
 var lastPoint = new(IDGenerator)
 
 // A CFn is a function suitable for calling as a commute on a ref
-type CFn func(interface{}, []interface{}) interface{}
+type CFn func(interface{}, ...interface{}) interface{}
 
 // A CFnCall is a pending call of a function on arguments.
 // Used to store commute calls on refs.
@@ -240,7 +240,7 @@ func (tx *Tx) Run(fn TxFn) (interface{}, error) {
 
 	done := false
 	var ret interface{}
-	locked := make([]*Ref, 10)
+	locked := make([]*Ref, 0, 10)
 	// notify := make([]*Notify)
 
 	defer func() {
@@ -297,7 +297,7 @@ func (tx *Tx) Run(fn TxFn) (interface{}, error) {
 				val := r.tryGetVal()
 				tx.vals[r] = val
 				for _, call := range calls {
-					tx.vals[r] = call.fn(tx.vals[r], call.args)
+					tx.vals[r] = call.fn(tx.vals[r], call.args...)
 				}
 			}
 
@@ -415,7 +415,7 @@ func (tx *Tx) GetAndStoreRefVal(r *Ref) {
 }
 
 // Post a commute on a ref into this transaction
-func (tx *Tx) doCommute(r *Ref, fn CFn, args []interface{}) interface{} {
+func (tx *Tx) doCommute(r *Ref, fn CFn, args ...interface{}) interface{} {
 	if !tx.info.isRunning() {
 		panic(retryError)
 	}
@@ -423,11 +423,13 @@ func (tx *Tx) doCommute(r *Ref, fn CFn, args []interface{}) interface{} {
 
 	calls, ok := tx.commutes[r]
 	if !ok {
-		calls = make([]*CFnCall, 5)
+		calls = make([]*CFnCall, 0, 5)
+	} else {
 	}
 	calls = append(calls, &CFnCall{fn: fn, args: args})
 	tx.commutes[r] = calls
-	ret := fn(tx.vals[r], args)
+
+	ret := fn(tx.vals[r], args...)
 	tx.vals[r] = ret
 
 	return ret
@@ -440,13 +442,6 @@ func (tx *Tx) Abort() {
 }
 
 /*
-
-
-
-
-
-
-
 
    class Notify
    {

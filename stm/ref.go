@@ -240,11 +240,11 @@ func (r *Ref) Set(tx *Tx, val interface{}) interface{} {
 }
 
 func (r *Ref) Commute(tx *Tx, fn CFn, args ...interface{}) interface{} {
-	return tx.doCommute(r, fn, args)
+	return tx.doCommute(r, fn, args...)
 }
 
 func (r *Ref) Alter(tx *Tx, fn CFn, args ...interface{}) interface{} {
-	return tx.doSet(r, fn(tx.doGet(r), args))
+	return tx.doSet(r, fn(tx.doGet(r), args...))
 }
 
 func (r *Ref) Touch(tx *Tx) {

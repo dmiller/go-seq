@@ -125,9 +125,105 @@ func TestNoCommitOnAbort(t *testing.T) {
 	RunInTransaction(f)
 
 	// shouldn't get here
+	t.Errorf("Abort should prevented us from reaching this point")
 
-	if true {
-		t.Errorf("Abort should prevented us from reaching this point")
+}
+
+func TestNoSetAfterCommute(t *testing.T) {
+	init1 := 12
+	add1 := 10
+	add2 := 20
+
+	var point1, point2 bool
+
+	r1 := NewRef(init1)
+	ret := 300
+
+	fc := func(old interface{}, args ...interface{}) interface{} {
+		return old.(int) + args[0].(int)
+	}
+
+	f := func(tx *Tx) interface{} {
+
+		r1.Commute(tx, fc, add1)
+		point1 = true
+
+		r1.Set(tx, add2)
+		point2 = true
+
+		return ret
+	}
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Errorf("Expected a panic due to transaction abort, didn't get one")
+		} else if r.(error).Error() != "Can't set after commute" {
+			t.Errorf("Expected 'can't set' error, got %v", r)
+
+		}
+
+		if v := r1.Deref(nil); v != init1 {
+			t.Errorf("Expected r1 to have value %v, got %v", init1, v)
+		}
+
+		if !point1 {
+			t.Errorf("Expected to do the commute, but failed earlier")
+		}
+
+		if point2 {
+			t.Errorf("Expected to panic during the set, but made it through")
+		}
+
+	}()
+
+	RunInTransaction(f)
+
+	t.Errorf("Should not have reached this point, should have panicked")
+}
+
+func TestSimpleCommute(t *testing.T) {
+	init1 := 12
+	add1 := 10
+	add2 := 20
+
+	var save1, save2 interface{}
+
+	r1 := NewRef(init1)
+	ret := 300
+
+	fc := func(old interface{}, args ...interface{}) interface{} {
+		return old.(int) + args[0].(int)
+	}
+
+	f := func(tx *Tx) interface{} {
+		r1.Commute(tx, fc, add1)
+		save1 = r1.Deref(tx)
+		r1.Commute(tx, fc, add2)
+		save2 = r1.Deref(tx)
+		return ret
+	}
+
+	v, e := RunInTransaction(f)
+
+	if e != nil {
+		t.Errorf("Expected no error, got %v", e)
+	}
+
+	if v != ret {
+		t.Errorf("Expected return value of %v, got %v", ret, v)
+	}
+
+	if v := r1.Deref(nil); v != init1+add1+add2 {
+		t.Errorf("Expected r1 to have value %v, got %v", init1+add1+add2, v)
+	}
+
+	if save1 != init1+add1 {
+		t.Errorf("Expected save to have value %v, got %v", init1+add1, save1)
+	}
+
+	if save2 != init1+add1+add2 {
+		t.Errorf("Expected save to have value %v, got %v", init1+add1+add2, save2)
 	}
 
 }
