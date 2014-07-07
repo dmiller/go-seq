@@ -239,7 +239,6 @@ func RunInTransaction(fn TxFn) (interface{}, error) {
 func (tx *Tx) Run(fn TxFn) (interface{}, error) {
 
 	done := false
-	var ret interface{}
 	locked := make([]*Ref, 0, 10)
 	// notify := make([]*Notify)
 
@@ -247,87 +246,106 @@ func (tx *Tx) Run(fn TxFn) (interface{}, error) {
 		for k := len(locked) - 1; k >= 0; k-- {
 			locked[k].exitWriteLock()
 		}
+
+		locked = nil
+		for r, _ := range tx.ensures {
+			r.exitReadLock()
+		}
+		tx.ensures = nil
+		if done {
+			tx.Stop(txCommitted)
+		} else {
+			tx.Stop(txRetry)
+		}
+		if done {
+			// do notifies and agent actions, if we every implement
+		}
+
 	}()
 
-	locked = nil
-	for r, _ := range tx.ensures {
-		r.exitReadLock()
-	}
-	tx.ensures = nil
-	if done {
-		tx.Stop(txCommitted)
-	} else {
-		tx.Stop(txRetry)
-	}
-	if done {
-		// do notifies and agent actions, if we every implement
-	}
-
 	for i := 0; !done && i < retryLimit; i++ {
-
-		tx.getReadPoint()
-		if i == 0 {
-			tx.startPoint = tx.readPoint
-			tx.startTime = time.Now()
-		}
-
-		tx.info = newTxInfo(txRunning, tx.startPoint)
-		ret = fn(tx)
-
-		// make sure no one has killed us before this point, and can't from now on
-		if atomic.CompareAndSwapUint32(&tx.info.status, txRunning, txCommitting) {
-			for r, calls := range tx.commutes {
-				if _, ok := tx.sets[r]; ok {
-					continue
-				}
-				_, wasEnsured := tx.ensures[r]
-				tx.releaseIfEnsured(r)
-				tryWriteLock(r)
-				locked = append(locked, r)
-				if wasEnsured && r.currValPoint() > tx.readPoint {
-					panic(retryError)
-				}
-
-				refInfo := r.tinfo
-				if refInfo != nil && refInfo != tx.info && refInfo.isRunning() {
-					if !tx.barge(refInfo) {
-						panic(retryError)
-					}
-				}
-				val := r.tryGetVal()
-				tx.vals[r] = val
-				for _, call := range calls {
-					tx.vals[r] = call.fn(tx.vals[r], call.args...)
-				}
-			}
-
-			for r, _ := range tx.sets {
-				tryWriteLock(r)
-				locked = append(locked, r)
-			}
-
-			// if we do validations for refs, it goes here
-
-			// at this point,
-			//    all values are calculated,
-			//    all refs to be written are locked
-			//    no more client code to be called
-			commitPoint := getCommitPoint()
-			for r, newV := range tx.vals {
-				//oldV := r.tryGetVal()
-				r.setValue(newV, commitPoint)
-				// todo: call notifies
-			}
+		ret, err := tx.tryRun(i, fn, &locked)
+		if err == nil {
 			done = true
-			atomic.StoreUint32(&tx.info.status, txCommitted)
-		}
-
-		if done {
 			return ret, nil
 		}
-
 	}
+
 	return nil, errors.New("Transaction failed after reaching retry limit")
+}
+
+// One iteration of the Run loop
+// Split out so that we can catch a retry panic
+func (tx *Tx) tryRun(i int, fn TxFn, locked *[]*Ref) (ret interface{}, err error) {
+
+	ret, err = nil, nil
+
+	defer func() {
+		r := recover()
+		if r == retryError {
+			ret, err = nil, retryError
+		} else if r != nil {
+			panic(r)
+		}
+	}()
+
+	tx.getReadPoint()
+	if i == 0 {
+		tx.startPoint = tx.readPoint
+		tx.startTime = time.Now()
+	}
+
+	tx.info = newTxInfo(txRunning, tx.startPoint)
+	ret = fn(tx)
+
+	// make sure no one has killed us before this point, and can't from now on
+	if atomic.CompareAndSwapUint32(&tx.info.status, txRunning, txCommitting) {
+		for r, calls := range tx.commutes {
+			if _, ok := tx.sets[r]; ok {
+				continue
+			}
+			_, wasEnsured := tx.ensures[r]
+			tx.releaseIfEnsured(r)
+			tryWriteLock(r)
+			*locked = append(*locked, r)
+			if wasEnsured && r.currValPoint() > tx.readPoint {
+				panic(retryError)
+			}
+
+			refInfo := r.tinfo
+			if refInfo != nil && refInfo != tx.info && refInfo.isRunning() {
+				if !tx.barge(refInfo) {
+					panic(retryError)
+				}
+			}
+			val := r.tryGetVal()
+			tx.vals[r] = val
+			for _, call := range calls {
+				tx.vals[r] = call.fn(tx.vals[r], call.args...)
+			}
+		}
+
+		for r, _ := range tx.sets {
+			tryWriteLock(r)
+			*locked = append(*locked, r)
+		}
+
+		// if we do validations for refs, it goes here
+
+		// at this point,
+		//    all values are calculated,
+		//    all refs to be written are locked
+		//    no more client code to be called
+		commitPoint := getCommitPoint()
+		for r, newV := range tx.vals {
+			//oldV := r.tryGetVal()
+			r.setValue(newV, commitPoint)
+			// todo: call notifies
+		}
+		atomic.StoreUint32(&tx.info.status, txCommitted)
+	}
+
+	return
 }
 
 // Get the value of a Ref (most recently sent in this transaction or value prior to entering)

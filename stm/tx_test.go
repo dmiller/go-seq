@@ -5,7 +5,10 @@
 package stm
 
 import (
+	"runtime"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestSimpleTxCall(t *testing.T) {
@@ -225,5 +228,78 @@ func TestSimpleCommute(t *testing.T) {
 	if save2 != init1+add1+add2 {
 		t.Errorf("Expected save to have value %v, got %v", init1+add1+add2, save2)
 	}
+}
+
+func TestSimpleInterference(t *testing.T) {
+
+	runtime.GOMAXPROCS(4)
+
+	init1 := 12
+	val1 := 100
+	val2 := 200
+	add1 := 1
+
+	r1 := NewRef(init1)
+	ret := 300
+
+	fc := func(old interface{}, args ...interface{}) interface{} {
+		return old.(int) + args[0].(int)
+	}
+
+	var done sync.WaitGroup
+	done.Add(2)
+
+	var once sync.Once
+
+	nfEnter, nfExit := 0, 0
+	ngEnter, ngExit := 0, 0
+
+	ch := make(chan bool, 1)
+
+	signalG := func() {
+		ch <- true
+	}
+
+	f := func(tx *Tx) interface{} {
+		t.Logf("F: Entering")
+		nfEnter++
+		r1.Set(tx, val1)
+		t.Logf("F: between sets")
+		once.Do(signalG)
+		time.Sleep(20 * time.Nanosecond)
+		r1.Set(tx, val2)
+		t.Logf("F: after sets")
+		nfExit++
+		return ret
+	}
+
+	go func() {
+		defer done.Done()
+		t.Logf("F: before TX")
+		RunInTransaction(f)
+		t.Logf("F: after TX")
+	}()
+
+	g := func(tx *Tx) interface{} {
+		t.Logf("G: entering")
+		ngEnter++
+		r1.Commute(tx, fc, add1)
+		t.Logf("G: after commute")
+		ngExit++
+		return ret
+	}
+
+	go func() {
+		defer done.Done()
+		<-ch
+		t.Logf("G: before TX")
+		RunInTransaction(g)
+		t.Logf("G: after TX")
+	}()
+
+	time.Sleep(time.Nanosecond)
+	done.Wait()
+
+	t.Errorf("%v %v %v %v %v", ngEnter, ngExit, r1.Deref(nil), nfEnter, nfExit)
 
 }
