@@ -246,7 +246,7 @@ func TestPHashMapContainsAndValAtAndEntryAt(t *testing.T) {
 		}
 
 		if bigTestPHashMap.EntryAt(k) != nil {
-			t.Error("Expected nil MapEntry for key %v", k)
+			t.Errorf("Expected nil MapEntry for key %v", k)
 		}
 
 		if v := bigTestPHashMap.ValAtD(k, 12); v != 12 {
@@ -277,7 +277,7 @@ func TestPHashMapAssoc(t *testing.T) {
 	}
 	for _, k := range []interface{}{1, 3} {
 		if m1a.ValAt(k) != m1.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m1.ValAt(k), m1a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m1.ValAt(k), m1a.ValAt(k))
 		}
 	}
 
@@ -291,7 +291,7 @@ func TestPHashMapAssoc(t *testing.T) {
 	}
 	for _, k := range []interface{}{1, 3, 5} {
 		if m2a.ValAt(k) != m2.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
 		}
 	}
 
@@ -303,11 +303,11 @@ func TestPHashMapAssoc(t *testing.T) {
 	}
 	for _, k := range []interface{}{1, 3, 5} {
 		if m2b.ValAt(k) != m2.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
 		}
 	}
 	if m2b.ValAt(7) != 8 {
-		t.Error("On key 7, expected 8, got %v", m2a.ValAt(7))
+		t.Errorf("On key 7, expected 8, got %v", m2a.ValAt(7))
 
 	}
 
@@ -319,11 +319,11 @@ func TestPHashMapAssoc(t *testing.T) {
 	}
 	for _, k := range []interface{}{1, 5} {
 		if m2b.ValAt(k) != m2.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
 		}
 	}
 	if m2b.ValAt(3) != 8 {
-		t.Error("On key 3, expected 8, got %v", m2a.ValAt(7))
+		t.Errorf("On key 3, expected 8, got %v", m2a.ValAt(7))
 
 	}
 }
@@ -345,7 +345,7 @@ func TestPHashMapWithout(t *testing.T) {
 
 	for _, k := range []interface{}{1, 3} {
 		if m1a.ValAt(k) != m1.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m1.ValAt(k), m1a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m1.ValAt(k), m1a.ValAt(k))
 		}
 	}
 
@@ -359,7 +359,7 @@ func TestPHashMapWithout(t *testing.T) {
 	}
 	for _, k := range []interface{}{1, 3, 5} {
 		if m2a.ValAt(k) != m2.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
 		}
 	}
 
@@ -371,7 +371,7 @@ func TestPHashMapWithout(t *testing.T) {
 	}
 	for _, k := range []interface{}{1, 3, 5} {
 		if m2b.ValAt(k) != m2.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
 		}
 	}
 	if m2b.ContainsKey(7) {
@@ -387,7 +387,7 @@ func TestPHashMapWithout(t *testing.T) {
 	}
 	for _, k := range []interface{}{1, 5} {
 		if m2b.ValAt(k) != m2.ValAt(k) {
-			t.Error("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
+			t.Errorf("On key %v, expected %v, got %v", k, m2.ValAt(k), m2a.ValAt(k))
 		}
 	}
 	if m2b.ContainsKey(3) {

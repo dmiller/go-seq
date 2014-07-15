@@ -197,7 +197,7 @@ func TestPVectorSeqable(t *testing.T) {
 
 	s3 := NewPVectorFromItems("abc", 4, 5).Seq()
 	if s3.Count() != 3 {
-		t.Errorf("PVectorSeq on non-empty items should have count %v, got %v", s3.Count())
+		t.Errorf("PVectorSeq on non-empty items should have count %v, got %v", 3, s3.Count())
 	}
 	if s3.First() != "abc" {
 		t.Error("PVectorSeq first item wrong")
@@ -231,7 +231,7 @@ func TestPVectorCons(t *testing.T) {
 
 	for i := 0; i < c4.Count(); i++ {
 		if vc4.Nth(i) != v4.Nth(i) {
-			t.Error("Cons of PVector has wrong item at %v", i)
+			t.Errorf("Cons of PVector has wrong item at %v", i)
 		}
 	}
 
@@ -282,7 +282,7 @@ func TestPVectorConsV(t *testing.T) {
 	slice := []interface{}{"abc", 4, 5, 12}
 	for i := 0; i < len(slice); i++ {
 		if v4.Nth(i) != slice[i] {
-			t.Error("ConsV of PVector has wrong item at %v", i)
+			t.Errorf("ConsV of PVector has wrong item at %v", i)
 		}
 	}
 }
